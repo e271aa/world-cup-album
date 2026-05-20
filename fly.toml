@@ -2,7 +2,7 @@
 # Substitui "world-cup-album" pelo nome que escolheres no fly launch
 
 app = "world-cup-album"
-primary_region = "mad"
+primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
