@@ -8,7 +8,8 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR / "data.json"
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
+DATA_FILE = DATA_DIR / "data.json"
 PORT = int(os.environ.get("PORT", 8765))
 
 
