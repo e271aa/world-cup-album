@@ -9,7 +9,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "data.json"
-PORT = 8765
+PORT = int(os.environ.get("PORT", 8765))
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -75,7 +75,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     print(f"Servidor a correr em http://localhost:{PORT}")
     print(f"Dados guardados em: {DATA_FILE}")
-    with http.server.ThreadingHTTPServer(("", PORT), Handler) as httpd:
+    with http.server.ThreadingHTTPServer(("0.0.0.0", PORT), Handler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
