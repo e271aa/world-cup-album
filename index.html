@@ -799,6 +799,7 @@
                     🏆 Álbum de Cromos
                     <span class="subtitle">Copa do Mundo FIFA 2026</span>
                 </h1>
+                <button class="btn-ghost" onclick="exportData()" title="Guardar backup dos dados">Exportar backup</button>
             </div>
 
             <div class="progress-section">
@@ -1510,6 +1511,19 @@
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        // ============ EXPORT ============
+        function exportData() {
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wc26-album-backup-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Backup guardado!');
         }
 
         // ============ SEARCH ============
