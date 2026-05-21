@@ -925,7 +925,7 @@
 
         <!-- SEARCH -->
         <div class="search-bar">
-            <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar por jogador, equipa ou grupo...">
+            <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar por jogador, equipa ou grupo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button class="search-clear" id="searchClear" style="display:none" title="Limpar pesquisa">✕</button>
         </div>
 
@@ -1755,6 +1755,10 @@
             }
         }
 
+        function normalize(str) {
+            return str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+
         function buildSearchIndex() {
             const results = [];
 
@@ -1769,7 +1773,7 @@
                     teamFlag: '⭐',
                     groupName: 'Especiais',
                     playerName,
-                    searchText: `${playerName} especiais fifa ${code}`.toLowerCase()
+                    searchText: normalize(`${playerName} especiais fifa ${code}`)
                 });
             });
 
@@ -1788,7 +1792,7 @@
                             teamFlag: team.flag,
                             groupName,
                             playerName,
-                            searchText: `${playerName} ${team.name} ${team.code} ${groupName}`.toLowerCase()
+                            searchText: normalize(`${playerName} ${team.name} ${team.code} ${groupName}`)
                         });
                     });
                 });
@@ -1799,7 +1803,7 @@
 
         function renderSearchResults() {
             const container = document.getElementById('searchResults');
-            const query = searchQuery.toLowerCase();
+            const query = normalize(searchQuery);
             const index = buildSearchIndex();
             const matches = index.filter(item => item.searchText.includes(query));
 
