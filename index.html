@@ -860,6 +860,9 @@
 
     <script>
         // ============ DATA ============
+        const JSONBIN_KEY = '$2a$10$XCJuUZRRkjSzi0UjZLxzA.YypbS1M9ghDun2S4/OiU.zkliY62dpi';
+        const JSONBIN_BIN = '6a0ee627ee5a733b12f67aae';
+
         const SPECIAL_CROMOS = ['00', 'FCW1', 'FCW2', 'FCW3', 'FCW4', 'FCW5', 'FCW6', 'FCW7', 'FCW8'];
         const CROMO_NUMBERS = ['0','1','2','3','4','5','6','7','8','9','10','11'];
 
@@ -1000,20 +1003,23 @@
 
         async function loadPlayers() {
             try {
-                const res = await fetch('/players', { cache: 'no-store' });
+                const res = await fetch('players.json', { cache: 'no-store' });
                 if (res.ok) {
                     players = await res.json();
                 }
             } catch (e) {
-                console.error('Erro ao ler /players:', e);
+                console.error('Erro ao ler players.json:', e);
             }
         }
 
         async function loadData() {
             try {
-                const res = await fetch('/data', { cache: 'no-store' });
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_KEY }
+                });
                 if (res.ok) {
-                    const remote = await res.json();
+                    const json = await res.json();
+                    const remote = json.record;
                     if (remote && Array.isArray(remote.tenho)) {
                         data = remote;
                         ensureDataIntegrity();
@@ -1021,7 +1027,7 @@
                     }
                 }
             } catch (e) {
-                console.error('Erro ao ler /data:', e);
+                console.error('Erro ao ler dados:', e);
             }
             createFreshData();
         }
@@ -1067,9 +1073,12 @@
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 try {
-                    const res = await fetch('/data', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_KEY
+                        },
                         body: JSON.stringify(data)
                     });
                     if (!res.ok) throw new Error('Falha ao guardar');
