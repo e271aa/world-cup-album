@@ -655,7 +655,8 @@
         /* ===== EQUIPAS FILTERS ===== */
         .filter-row {
             display: flex;
-            gap: 20px;
+            align-items: center;
+            gap: 12px;
             flex-wrap: wrap;
             margin-bottom: 24px;
             padding-bottom: 20px;
@@ -664,8 +665,13 @@
 
         .filter-group {
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group + .filter-group {
+            padding-left: 12px;
+            border-left: 2px solid var(--border);
         }
 
         .filter-label {
@@ -674,6 +680,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
+            white-space: nowrap;
         }
 
         .filter-pills {
@@ -1601,11 +1608,13 @@
 
         function setEquipasFilter(key, value) {
             equipasFilter[key] = value;
-            const panel = document.querySelector('[data-panel="Equipas"]');
-            if (panel) {
-                panel.innerHTML = `<div class="panel-header"><div class="panel-title">Equipas</div></div>`;
-                panel.appendChild(renderEquipasPanel());
-            }
+            requestAnimationFrame(() => {
+                const panel = document.querySelector('[data-panel="Equipas"]');
+                if (panel) {
+                    panel.innerHTML = `<div class="panel-header"><div class="panel-title">Equipas</div></div>`;
+                    panel.appendChild(renderEquipasPanel());
+                }
+            });
         }
 
         function renderEquipasPanel() {
@@ -1649,7 +1658,7 @@
                     <div class="filter-label">Estado</div>
                     <div class="filter-pills">
                         ${[['todos','Todos'],['tenho','Tenho'],['faltam','Faltam'],['duplicados','Duplicados']].map(([v, l]) => `
-                            <button class="filter-pill ${equipasFilter.status === v ? 'active' : ''}" onclick="setEquipasFilter('status','${v}')">${l}</button>
+                            <button type="button" class="filter-pill ${equipasFilter.status === v ? 'active' : ''}" onclick="setEquipasFilter('status','${v}')">${l}</button>
                         `).join('')}
                     </div>
                 </div>
