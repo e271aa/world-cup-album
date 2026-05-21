@@ -652,6 +652,84 @@
             transition: width 0.4s;
         }
 
+        /* ===== EQUIPAS FILTERS ===== */
+        .filter-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: var(--bg);
+            color: var(--text-muted);
+            border: 2px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--primary-light);
+            color: var(--text);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .filter-select {
+            padding: 7px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            background: var(--surface);
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .filter-select:focus {
+            border-color: var(--primary-light);
+        }
+
+        .equipas-empty {
+            text-align: center;
+            padding: 48px 0;
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
         /* ===== SEARCH ===== */
         .search-bar {
             position: relative;
@@ -869,6 +947,11 @@
         const GROUPS = {
             'Insights': {
                 key: 'insights',
+                icon: '',
+                teams: []
+            },
+            'Equipas': {
+                key: 'equipas',
                 icon: '',
                 teams: []
             },
@@ -1098,8 +1181,8 @@
                 btn.className = 'tab' + (name === currentTab ? ' active' : '');
                 btn.dataset.tab = name;
 
-                if (name === 'Insights') {
-                    btn.innerHTML = 'Insights';
+                if (name === 'Insights' || name === 'Equipas') {
+                    btn.innerHTML = name;
                 } else {
                     const stats = getGroupStats(name);
                     btn.innerHTML = `${name === 'Especiais' ? '⭐ Especiais' : name}<span class="tab-count">${stats.owned}/${stats.total}</span>`;
@@ -1137,6 +1220,13 @@
                         </div>
                     `;
                     panel.appendChild(renderInsightsPanel());
+                } else if (name === 'Equipas') {
+                    panel.innerHTML = `
+                        <div class="panel-header">
+                            <div class="panel-title">Equipas</div>
+                        </div>
+                    `;
+                    panel.appendChild(renderEquipasPanel());
                 } else {
                     const stats = getGroupStats(name);
                     panel.innerHTML = `
@@ -1199,7 +1289,7 @@
             const gruposCompletos = [];
             const gruposProgresso = [];
             Object.entries(GROUPS).forEach(([name]) => {
-                if (name === 'Insights' || name === 'Especiais') return;
+                if (name === 'Insights' || name === 'Especiais' || name === 'Equipas') return;
                 const s = getGroupStats(name);
                 gruposProgresso.push({ name, owned: s.owned, total: s.total, pct: Math.round((s.owned / s.total) * 100) });
                 if (s.owned === s.total) gruposCompletos.push(name);
@@ -1452,7 +1542,7 @@
         // ============ STATS ============
         function getGroupStats(groupName) {
             const group = GROUPS[groupName];
-            if (groupName === 'Insights') {
+            if (groupName === 'Insights' || groupName === 'Equipas') {
                 return { owned: 0, total: 0 };
             }
             if (groupName === 'Especiais') {
@@ -1504,6 +1594,117 @@
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        // ============ EQUIPAS ============
+        let equipasFilter = { status: 'todos', grupo: 'todos', sort: 'az' };
+
+        function setEquipasFilter(key, value) {
+            equipasFilter[key] = value;
+            const panel = document.querySelector('[data-panel="Equipas"]');
+            if (panel) {
+                panel.innerHTML = `<div class="panel-header"><div class="panel-title">Equipas</div></div>`;
+                panel.appendChild(renderEquipasPanel());
+            }
+        }
+
+        function renderEquipasPanel() {
+            const wrap = document.createElement('div');
+
+            // Filtrar e recolher equipas
+            let teams = [];
+            Object.entries(GROUPS).forEach(([groupName, group]) => {
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas') return;
+                if (equipasFilter.grupo !== 'todos' && groupName !== equipasFilter.grupo) return;
+                group.teams.forEach(team => {
+                    const matchingNums = CROMO_NUMBERS.filter(n => {
+                        const code = `${team.code}${n}`;
+                        if (equipasFilter.status === 'tenho') return hasCromo(code);
+                        if (equipasFilter.status === 'faltam') return !hasCromo(code);
+                        if (equipasFilter.status === 'duplicados') return getDups(code) > 0;
+                        return true;
+                    });
+                    if (matchingNums.length > 0) {
+                        const owned = CROMO_NUMBERS.filter(n => hasCromo(`${team.code}${n}`)).length;
+                        teams.push({ team, groupName, matchingNums, owned });
+                    }
+                });
+            });
+
+            // Ordenar
+            teams.sort((a, b) => {
+                if (equipasFilter.sort === 'az') return a.team.name.localeCompare(b.team.name, 'pt');
+                if (equipasFilter.sort === 'za') return b.team.name.localeCompare(a.team.name, 'pt');
+                if (equipasFilter.sort === 'pct-desc') return b.owned - a.owned;
+                if (equipasFilter.sort === 'pct-asc') return a.owned - b.owned;
+                return 0;
+            });
+
+            // Filtros UI
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas');
+            const filters = document.createElement('div');
+            filters.className = 'filter-row';
+            filters.innerHTML = `
+                <div class="filter-group">
+                    <div class="filter-label">Estado</div>
+                    <div class="filter-pills">
+                        ${[['todos','Todos'],['tenho','Tenho'],['faltam','Faltam'],['duplicados','Duplicados']].map(([v, l]) => `
+                            <button class="filter-pill ${equipasFilter.status === v ? 'active' : ''}" onclick="setEquipasFilter('status','${v}')">${l}</button>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Grupo</div>
+                    <select class="filter-select" onchange="setEquipasFilter('grupo', this.value)">
+                        <option value="todos" ${equipasFilter.grupo === 'todos' ? 'selected' : ''}>Todos</option>
+                        ${grupos.map(g => `<option value="${g}" ${equipasFilter.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <div class="filter-label">Ordenar</div>
+                    <select class="filter-select" onchange="setEquipasFilter('sort', this.value)">
+                        <option value="az" ${equipasFilter.sort === 'az' ? 'selected' : ''}>A → Z</option>
+                        <option value="za" ${equipasFilter.sort === 'za' ? 'selected' : ''}>Z → A</option>
+                        <option value="pct-desc" ${equipasFilter.sort === 'pct-desc' ? 'selected' : ''}>Mais completo</option>
+                        <option value="pct-asc" ${equipasFilter.sort === 'pct-asc' ? 'selected' : ''}>Menos completo</option>
+                    </select>
+                </div>
+            `;
+            wrap.appendChild(filters);
+
+            if (teams.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'equipas-empty';
+                empty.textContent = 'Nenhuma equipa encontrada com estes filtros.';
+                wrap.appendChild(empty);
+                return wrap;
+            }
+
+            teams.forEach(({ team, groupName, matchingNums, owned }) => {
+                const section = document.createElement('div');
+                section.className = 'team';
+                const countLabel = equipasFilter.status !== 'todos'
+                    ? ` · ${matchingNums.length} ${equipasFilter.status === 'tenho' ? 'tenho' : equipasFilter.status === 'faltam' ? 'faltam' : 'duplicados'}`
+                    : '';
+                section.innerHTML = `
+                    <div class="team-header">
+                        <div class="team-name">
+                            <span class="team-flag">${team.flag}</span>
+                            <span class="team-code">${team.code}</span>
+                            <span>${team.name}</span>
+                            <span class="search-group-tag">${groupName}</span>
+                        </div>
+                        <div class="team-progress">${owned}/12${countLabel}</div>
+                    </div>
+                `;
+                const grid = document.createElement('div');
+                grid.className = 'cromos-grid';
+                matchingNums.forEach(num => grid.appendChild(createCromo('equipas', team.code, num)));
+                section.appendChild(grid);
+                wrap.appendChild(section);
+            });
+
+            return wrap;
         }
 
         // ============ SEARCH ============
