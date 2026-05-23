@@ -1625,7 +1625,7 @@
             Object.entries(GROUPS).forEach(([groupName, group]) => {
                 if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas') return;
                 if (equipasFilter.grupo !== 'todos' && groupName !== equipasFilter.grupo) return;
-                group.teams.forEach(team => {
+                group.teams.forEach((team, teamIdx) => {
                     const matchingNums = CROMO_NUMBERS.filter(n => {
                         const code = `${team.code}${n}`;
                         if (equipasFilter.status === 'tenho') return hasCromo(code);
@@ -1635,7 +1635,7 @@
                     });
                     if (matchingNums.length > 0) {
                         const owned = CROMO_NUMBERS.filter(n => hasCromo(`${team.code}${n}`)).length;
-                        teams.push({ team, groupName, matchingNums, owned });
+                        teams.push({ team, groupName, matchingNums, owned, teamIdx });
                     }
                 });
             });
@@ -1649,7 +1649,7 @@
                 if (equipasFilter.sort === 'pct-asc') return a.owned - b.owned;
                 if (equipasFilter.sort === 'grupo') {
                     const gi = groupOrder.indexOf(a.groupName) - groupOrder.indexOf(b.groupName);
-                    return gi !== 0 ? gi : a.team.name.localeCompare(b.team.name, 'pt');
+                    return gi !== 0 ? gi : a.teamIdx - b.teamIdx;
                 }
                 return 0;
             });
