@@ -1641,11 +1641,16 @@
             });
 
             // Ordenar
+            const groupOrder = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas');
             teams.sort((a, b) => {
                 if (equipasFilter.sort === 'az') return a.team.name.localeCompare(b.team.name, 'pt');
                 if (equipasFilter.sort === 'za') return b.team.name.localeCompare(a.team.name, 'pt');
                 if (equipasFilter.sort === 'pct-desc') return b.owned - a.owned;
                 if (equipasFilter.sort === 'pct-asc') return a.owned - b.owned;
+                if (equipasFilter.sort === 'grupo') {
+                    const gi = groupOrder.indexOf(a.groupName) - groupOrder.indexOf(b.groupName);
+                    return gi !== 0 ? gi : a.team.name.localeCompare(b.team.name, 'pt');
+                }
                 return 0;
             });
 
@@ -1674,6 +1679,7 @@
                     <select class="filter-select" onchange="setEquipasFilter('sort', this.value)">
                         <option value="az" ${equipasFilter.sort === 'az' ? 'selected' : ''}>A → Z</option>
                         <option value="za" ${equipasFilter.sort === 'za' ? 'selected' : ''}>Z → A</option>
+                        <option value="grupo" ${equipasFilter.sort === 'grupo' ? 'selected' : ''}>Por grupo</option>
                         <option value="pct-desc" ${equipasFilter.sort === 'pct-desc' ? 'selected' : ''}>Mais completo</option>
                         <option value="pct-asc" ${equipasFilter.sort === 'pct-asc' ? 'selected' : ''}>Menos completo</option>
                     </select>
