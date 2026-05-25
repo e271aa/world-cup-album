@@ -1194,6 +1194,7 @@
         }
 
         function setConta2(code, val) {
+            if (!Array.isArray(data.conta2)) data.conta2 = [];
             if (val) {
                 // Conta 1 e Conta 2 são exclusivas
                 const idx = data.tenho.indexOf(code);
@@ -1206,6 +1207,7 @@
         }
 
         function setHas(code, val) {
+            if (!Array.isArray(data.tenho)) data.tenho = [];
             const idx = data.tenho.indexOf(code);
             if (val && idx < 0) data.tenho.push(code);
             else if (!val && idx >= 0) {
@@ -1223,18 +1225,24 @@
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(async () => {
                 try {
+                    ensureDataIntegrity();
+                    const body = JSON.stringify(data);
                     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Master-Key': JSONBIN_KEY
                         },
-                        body: JSON.stringify(data)
+                        body: body
                     });
-                    if (!res.ok) throw new Error('Falha ao guardar');
+                    if (!res.ok) {
+                        const err = await res.text();
+                        throw new Error(`Falha ao guardar (${res.status}): ${err}`);
+                    }
                 } catch (e) {
-                    console.error('Erro ao guardar:', e);
-                    showToast('Erro ao guardar dados!');
+                    console.error('Erro ao guardar dados:', e);
+                    console.error('Dados que falharam:', data);
+                    showToast('⚠️ Erro ao guardar dados!');
                 }
             }, 200);
         }
