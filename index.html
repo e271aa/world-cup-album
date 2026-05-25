@@ -1195,6 +1195,9 @@
 
         function setConta2(code, val) {
             if (val) {
+                // Conta 1 e Conta 2 são exclusivas
+                const idx = data.tenho.indexOf(code);
+                if (idx >= 0) { data.tenho.splice(idx, 1); delete data.duplicados[code]; }
                 if (!data.conta2.includes(code)) data.conta2.push(code);
             } else {
                 data.conta2 = data.conta2.filter(c => c !== code);
@@ -1564,7 +1567,7 @@
             else if (c2)     el.classList.add('conta2');
             else if (c1)     el.classList.add('owned');
 
-            const statusText = c2 ? '✓ C1 + C2' : c1 ? '✓ Conta 1' : '';
+            const statusText = c2 ? '✓ Conta 2' : c1 ? '✓ Conta 1' : '';
 
             el.innerHTML = `
                 <div class="cromo-code">${displayCode}</div>
@@ -1586,20 +1589,22 @@
                 if (btn) {
                     e.stopPropagation();
                     if (btn.dataset.action === 'add') {
-                        if (!_c1)      setHas(code, true);
-                        else if (!_c2) setConta2(code, true);
-                        else           setDups(code, d + 1);
+                        // + avança: nenhum→C1 | C1→C2 | C2→dup
+                        if (!_c1 && !_c2)    setHas(code, true);
+                        else if (_c1 && !_c2) { setHas(code, false); setConta2(code, true); }
+                        else if (_c2)         setDups(code, d + 1);
                     } else {
-                        if (d > 0)        setDups(code, d - 1);
-                        else if (_c2)     setConta2(code, false);
-                        else if (_c1)     setHas(code, false);
+                        // − recua: dup→C2 | C2→C1 | C1→nenhum
+                        if (d > 0)            setDups(code, d - 1);
+                        else if (_c2)         { setConta2(code, false); setHas(code, true); }
+                        else if (_c1)         setHas(code, false);
                     }
                 } else {
                     // Ciclo principal: nenhum → C1 → C2 → duplicado → nenhum
-                    if (!_c1)          setHas(code, true);
-                    else if (!_c2)     setConta2(code, true);
-                    else if (d === 0)  setDups(code, 1);
-                    else { setHas(code, false); setConta2(code, false); setDups(code, 0); }
+                    if (!_c1 && !_c2)         setHas(code, true);
+                    else if (_c1 && !_c2)     { setHas(code, false); setConta2(code, true); }
+                    else if (_c2 && d === 0)  setDups(code, 1);
+                    else                      { setConta2(code, false); setDups(code, 0); }
                 }
                 saveData();
                 if (searchQuery) {
