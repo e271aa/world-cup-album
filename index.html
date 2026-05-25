@@ -10,6 +10,7 @@
             --primary-light: #3b82f6;
             --accent: #f59e0b;
             --success: #10b981;
+            --conta2: #7c3aed;
             --danger: #ef4444;
             --bg: #f8fafc;
             --surface: #ffffff;
@@ -363,7 +364,8 @@
         }
 
         .cromo.owned .cromo-player,
-        .cromo.duplicate .cromo-player {
+        .cromo.duplicate .cromo-player,
+        .cromo.conta2 .cromo-player {
             color: rgba(255,255,255,0.8);
         }
 
@@ -392,6 +394,31 @@
             opacity: 0.9;
         }
 
+        /* Conta 2 state (purple) */
+        .cromo.conta2 {
+            background: linear-gradient(135deg, var(--conta2) 0%, #5b21b6 100%);
+            border-color: var(--conta2);
+            color: white;
+        }
+
+        .cromo.conta2 .cromo-code,
+        .cromo.conta2 .cromo-num,
+        .cromo.conta2 .cromo-player {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .cromo.conta2 .cromo-code {
+            opacity: 0.9;
+        }
+
+        .cromo.conta2 .cromo-btn {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .cromo.conta2 .cromo-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
         /* Duplicate state */
         .cromo.duplicate {
             background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
@@ -417,6 +444,10 @@
             min-width: 20px;
             text-align: center;
             box-shadow: var(--shadow-sm);
+        }
+
+        .cromo.conta2 .dup-badge {
+            color: var(--conta2);
         }
 
         /* Cromo controls */
@@ -457,12 +488,14 @@
         }
 
         .cromo.owned .cromo-btn,
-        .cromo.duplicate .cromo-btn {
+        .cromo.duplicate .cromo-btn,
+        .cromo.conta2 .cromo-btn {
             background: rgba(255,255,255,0.3);
         }
 
         .cromo.owned .cromo-btn:hover,
-        .cromo.duplicate .cromo-btn:hover {
+        .cromo.duplicate .cromo-btn:hover,
+        .cromo.conta2 .cromo-btn:hover {
             background: rgba(255,255,255,0.5);
         }
 
@@ -495,6 +528,7 @@
         }
 
         .legend-dot.owned { background: var(--success); border-color: var(--success); }
+        .legend-dot.conta2 { background: var(--conta2); border-color: var(--conta2); }
         .legend-dot.duplicate { background: var(--accent); border-color: var(--accent); }
 
         /* ===== INSIGHTS ===== */
@@ -896,8 +930,12 @@
                 </div>
                 <div class="stats">
                     <div class="stat">
-                        <div class="stat-value" id="uniqueCount">0</div>
-                        <div class="stat-label">Tenho</div>
+                        <div class="stat-value" id="conta1Count">0</div>
+                        <div class="stat-label">Conta 1</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="conta2Count">0</div>
+                        <div class="stat-label">Conta 2</div>
                     </div>
                     <div class="stat">
                         <div class="stat-value" id="missingCount">0</div>
@@ -918,7 +956,8 @@
         <!-- LEGEND -->
         <div class="legend">
             <div class="legend-item"><div class="legend-dot"></div>Faltam</div>
-            <div class="legend-item"><div class="legend-dot owned"></div>Tenho</div>
+            <div class="legend-item"><div class="legend-dot owned"></div>Conta 1</div>
+            <div class="legend-item"><div class="legend-dot conta2"></div>Conta 2</div>
             <div class="legend-item"><div class="legend-dot duplicate"></div>Duplicado</div>
             <div class="legend-item">💡 Clica para marcar · Botões + / − para duplicados</div>
         </div>
@@ -1123,26 +1162,44 @@
         }
 
         function createFreshData() {
-            data = { tenho: [], duplicados: {} };
+            data = { tenho: [], conta2: [], duplicados: {} };
             saveData();
         }
 
         function ensureDataIntegrity() {
             if (!Array.isArray(data.tenho)) data.tenho = [];
+            if (!Array.isArray(data.conta2)) data.conta2 = [];
             if (!data.duplicados || typeof data.duplicados !== 'object') data.duplicados = {};
         }
 
-        // Helpers para o novo formato
+        // Helpers
         function cromoCode(type, teamCode, num) {
             return type === 'especiais' ? num : `${teamCode}${num}`;
         }
 
-        function hasCromo(code) {
+        function hasCromo(code) {   // conta 1
             return data.tenho.includes(code);
+        }
+
+        function hasConta2(code) {
+            return data.conta2.includes(code);
+        }
+
+        function hasAny(code) {     // conta 1 ou conta 2
+            return data.tenho.includes(code) || data.conta2.includes(code);
         }
 
         function getDups(code) {
             return data.duplicados[code] || 0;
+        }
+
+        function setConta2(code, val) {
+            if (val) {
+                if (!data.conta2.includes(code)) data.conta2.push(code);
+            } else {
+                data.conta2 = data.conta2.filter(c => c !== code);
+                delete data.duplicados[code];
+            }
         }
 
         function setHas(code, val) {
@@ -1266,18 +1323,18 @@
             Object.entries(GROUPS).forEach(([name, group]) => {
                 if (name === 'Insights' || name === 'Especiais') return;
                 group.teams.forEach(team => {
-                    const ownedNums = CROMO_NUMBERS.filter(n => hasCromo(`${team.code}${n}`));
+                    const ownedNums = CROMO_NUMBERS.filter(n => hasAny(`${team.code}${n}`));
                     teamStats.push({ team, groupName: name, owned: ownedNums.length, ownedNums });
                 });
             });
 
             let total = 0, owned = 0;
-            SPECIAL_CROMOS.forEach(c => { total++; if (hasCromo(c)) owned++; });
+            SPECIAL_CROMOS.forEach(c => { total++; if (hasAny(c)) owned++; });
             Object.values(GROUPS).forEach(group => {
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
                         total++;
-                        if (hasCromo(`${team.code}${n}`)) owned++;
+                        if (hasAny(`${team.code}${n}`)) owned++;
                     });
                 });
             });
@@ -1321,7 +1378,7 @@
 
         function getMissingForTeam(teamCode) {
             return CROMO_NUMBERS
-                .filter(n => !hasCromo(`${teamCode}${n}`))
+                .filter(n => !hasAny(`${teamCode}${n}`))
                 .map(n => `${teamCode}${n} ${getPlayerName(teamCode, n)}`);
         }
 
@@ -1465,7 +1522,7 @@
             const div = document.createElement('div');
             div.className = 'team';
 
-            const owned = CROMO_NUMBERS.filter(n => hasCromo(`${team.code}${n}`)).length;
+            const owned = CROMO_NUMBERS.filter(n => hasAny(`${team.code}${n}`)).length;
 
             div.innerHTML = `
                 <div class="team-header">
@@ -1490,7 +1547,8 @@
         function createCromo(type, teamCode, num) {
             const code = cromoCode(type, teamCode, num);
             const displayCode = teamCode ? `${teamCode}${num}` : 'FIFA';
-            const tenho = hasCromo(code);
+            const c1 = hasCromo(code);
+            const c2 = hasConta2(code);
             const dups = getDups(code);
 
             let playerName = '';
@@ -1502,36 +1560,46 @@
 
             const el = document.createElement('div');
             el.className = 'cromo';
-            if (tenho && dups === 0) el.classList.add('owned');
-            else if (dups > 0) el.classList.add('duplicate');
+            if (dups > 0)    el.classList.add('duplicate');
+            else if (c2)     el.classList.add('conta2');
+            else if (c1)     el.classList.add('owned');
+
+            const statusText = c2 ? '✓ C1 + C2' : c1 ? '✓ Conta 1' : '';
 
             el.innerHTML = `
                 <div class="cromo-code">${displayCode}</div>
                 <div class="cromo-num">${num}</div>
                 ${playerName ? `<div class="cromo-player">${playerName}</div>` : ''}
-                <div class="cromo-status">${tenho ? '✓ Tenho' : ''}</div>
+                <div class="cromo-status">${statusText}</div>
                 ${dups > 0 ? `<div class="dup-badge">+${dups}</div>` : ''}
                 <div class="cromo-controls">
-                    <button class="cromo-btn" data-action="add" title="Adicionar duplicado">+</button>
-                    <button class="cromo-btn" data-action="remove" title="Remover duplicado">−</button>
+                    <button class="cromo-btn" data-action="add" title="Avançar">+</button>
+                    <button class="cromo-btn" data-action="remove" title="Recuar">−</button>
                 </div>
             `;
 
             el.addEventListener('click', (e) => {
                 const btn = e.target.closest('.cromo-btn');
-                const has = hasCromo(code);
+                const _c1 = hasCromo(code);
+                const _c2 = hasConta2(code);
                 const d = getDups(code);
                 if (btn) {
                     e.stopPropagation();
                     if (btn.dataset.action === 'add') {
-                        if (!has) setHas(code, true);
-                        else setDups(code, d + 1);
+                        if (!_c1)      setHas(code, true);
+                        else if (!_c2) setConta2(code, true);
+                        else           setDups(code, d + 1);
                     } else {
-                        if (d > 0) setDups(code, d - 1);
-                        else if (has) setHas(code, false);
+                        if (d > 0)        setDups(code, d - 1);
+                        else if (_c2)     setConta2(code, false);
+                        else if (_c1)     setHas(code, false);
                     }
                 } else {
-                    setHas(code, !has);
+                    // Ciclo principal: nenhum → C1 → C2 → duplicado → nenhum
+                    if (!_c1)          setHas(code, true);
+                    else if (!_c2)     setConta2(code, true);
+                    else if (d === 0)  setDups(code, 1);
+                    else { setHas(code, false); setConta2(code, false); setDups(code, 0); }
                 }
                 saveData();
                 if (searchQuery) {
@@ -1554,26 +1622,27 @@
             }
             if (groupName === 'Especiais') {
                 const total = SPECIAL_CROMOS.length;
-                const owned = SPECIAL_CROMOS.filter(c => hasCromo(c)).length;
+                const owned = SPECIAL_CROMOS.filter(c => hasAny(c)).length;
                 return { owned, total };
             }
             let owned = 0, total = 0;
             group.teams.forEach(team => {
                 CROMO_NUMBERS.forEach(n => {
                     total++;
-                    if (hasCromo(`${team.code}${n}`)) owned++;
+                    if (hasAny(`${team.code}${n}`)) owned++;
                 });
             });
             return { owned, total };
         }
 
         function updateStats() {
-            let total = 0, owned = 0, dups = 0;
+            let total = 0, c1 = 0, c2 = 0, dups = 0;
 
-            SPECIAL_CROMOS.forEach(c => {
+            SPECIAL_CROMOS.forEach(code => {
                 total++;
-                if (hasCromo(c)) owned++;
-                dups += getDups(c);
+                if (hasCromo(code)) c1++;
+                if (hasConta2(code)) c2++;
+                dups += getDups(code);
             });
 
             Object.values(GROUPS).forEach(group => {
@@ -1581,16 +1650,19 @@
                     CROMO_NUMBERS.forEach(n => {
                         total++;
                         const code = `${team.code}${n}`;
-                        if (hasCromo(code)) owned++;
+                        if (hasCromo(code)) c1++;
+                        if (hasConta2(code)) c2++;
                         dups += getDups(code);
                     });
                 });
             });
 
+            const owned = new Set([...data.tenho, ...data.conta2]).size;
             const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
             document.getElementById('progressPercent').textContent = percent + '%';
             document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('uniqueCount').textContent = owned;
+            document.getElementById('conta1Count').textContent = c1;
+            document.getElementById('conta2Count').textContent = c2;
             document.getElementById('missingCount').textContent = total - owned;
             document.getElementById('duplicateCount').textContent = dups;
             document.getElementById('totalCount').textContent = total;
@@ -1628,13 +1700,13 @@
                 group.teams.forEach((team, teamIdx) => {
                     const matchingNums = CROMO_NUMBERS.filter(n => {
                         const code = `${team.code}${n}`;
-                        if (equipasFilter.status === 'tenho') return hasCromo(code);
-                        if (equipasFilter.status === 'faltam') return !hasCromo(code);
+                        if (equipasFilter.status === 'tenho') return hasAny(code);
+                        if (equipasFilter.status === 'faltam') return !hasAny(code);
                         if (equipasFilter.status === 'duplicados') return getDups(code) > 0;
                         return true;
                     });
                     if (matchingNums.length > 0) {
-                        const owned = CROMO_NUMBERS.filter(n => hasCromo(`${team.code}${n}`)).length;
+                        const owned = CROMO_NUMBERS.filter(n => hasAny(`${team.code}${n}`)).length;
                         teams.push({ team, groupName, matchingNums, owned, teamIdx });
                     }
                 });
