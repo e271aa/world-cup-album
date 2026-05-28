@@ -2035,6 +2035,19 @@
         }
 
         // ============ TROCAS (TRADES) ============
+        let trocasFilter = { giveGrupo: 'todos', receiveGrupo: 'todos', sort: 'az' };
+
+        function setTrocasFilter(key, value) {
+            trocasFilter[key] = value;
+            requestAnimationFrame(() => {
+                const panel = document.querySelector('[data-panel="Trocas"]');
+                if (panel) {
+                    panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                    panel.appendChild(renderTrocasPanel());
+                }
+            });
+        }
+
         function getTrocasIndex() {
             const trocasIndex = [];
 
@@ -2097,33 +2110,91 @@
             const selectionDiv = document.createElement('div');
             selectionDiv.className = 'trades-container';
 
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas' && g !== 'Trocas');
+
+            function sortItems(items) {
+                return [...items].sort((a, b) => {
+                    if (trocasFilter.sort === 'az') return a.teamName.localeCompare(b.teamName, 'pt');
+                    if (trocasFilter.sort === 'grupo') {
+                        const gi = grupos.indexOf(a.groupName) - grupos.indexOf(b.groupName);
+                        return gi !== 0 ? gi : a.teamName.localeCompare(b.teamName, 'pt');
+                    }
+                    return 0;
+                });
+            }
+
+            function makeTradeCard(item, isSelected, colorClass, onToggle) {
+                const card = document.createElement('div');
+                card.className = 'trade-item' + (isSelected ? ` ${colorClass}` : '');
+                const dups = getDups(item.code);
+                card.innerHTML = `
+                    <div class="trade-item-flag">${item.teamFlag}</div>
+                    <div class="trade-item-team">${item.teamName}</div>
+                    <div class="trade-item-code">${item.num}</div>
+                    ${item.playerName ? `<div class="trade-item-player">${item.playerName}</div>` : ''}
+                    ${dups > 0 ? `<div class="trade-checkmark" style="background:rgba(0,0,0,0.15);color:white;font-size:9px">×${dups}</div>` : ''}
+                    ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
+                `;
+                card.onclick = onToggle;
+                return card;
+            }
+
             // Left: Available to give
             const leftSection = document.createElement('div');
             leftSection.className = 'trades-section';
-            leftSection.innerHTML = `<div class="trades-section-title">Disponível para dar</div>`;
+
+            const selectedGiveCount = data.trades.pending.given.length;
+            leftSection.innerHTML = `
+                <div class="trades-section-title">
+                    Disponível para dar
+                    ${selectedGiveCount > 0 ? `<span style="background:var(--accent);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedGiveCount} selecionado${selectedGiveCount !== 1 ? 's' : ''}</span>` : ''}
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+                    <select class="filter-select" onchange="setTrocasFilter('giveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
+                        <option value="todos" ${trocasFilter.giveGrupo==='todos'?'selected':''}>Todos os grupos</option>
+                        ${grupos.map(g=>`<option value="${g}" ${trocasFilter.giveGrupo===g?'selected':''}>${g}</option>`).join('')}
+                    </select>
+                    <select class="filter-select" onchange="setTrocasFilter('sort',this.value)" style="font-size:12px;padding:5px 10px">
+                        <option value="az" ${trocasFilter.sort==='az'?'selected':''}>A → Z</option>
+                        <option value="grupo" ${trocasFilter.sort==='grupo'?'selected':''}>Por grupo</option>
+                    </select>
+                    ${selectedGiveCount > 0 ? `<button class="filter-pill active" onclick="setTrocasFilter('giveGrupo','__selected__')" style="font-size:11px;padding:4px 10px">Só selecionados</button>` : ''}
+                </div>
+            `;
+
+            // Build give items with group info
+            const availableToGiveWithGroup = availableToGive.map(item => {
+                let groupName = 'Especiais';
+                Object.entries(GROUPS).forEach(([gn, g]) => {
+                    g.teams.forEach(t => { if (t.code === item.teamCode) groupName = gn; });
+                });
+                return { ...item, groupName };
+            });
+
+            let filteredGive = availableToGiveWithGroup;
+            if (trocasFilter.giveGrupo === '__selected__') {
+                filteredGive = filteredGive.filter(i => data.trades.pending.given.includes(i.code));
+            } else if (trocasFilter.giveGrupo !== 'todos') {
+                filteredGive = filteredGive.filter(i => i.groupName === trocasFilter.giveGrupo);
+            }
+            filteredGive = sortItems(filteredGive);
 
             if (availableToGive.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'trades-empty';
                 empty.textContent = 'Não tens duplicados em Conta 1';
                 leftSection.appendChild(empty);
+            } else if (filteredGive.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'trades-empty';
+                empty.textContent = 'Nenhum cromo encontrado com este filtro.';
+                leftSection.appendChild(empty);
             } else {
                 const grid = document.createElement('div');
                 grid.className = 'trades-grid';
-
-                availableToGive.forEach(item => {
+                filteredGive.forEach(item => {
                     const isSelected = data.trades.pending.given.includes(item.code);
-                    const card = document.createElement('div');
-                    card.className = 'trade-item' + (isSelected ? ' selected-given' : '');
-                    const playerName = item.playerName || '';
-                    card.innerHTML = `
-                        <div class="trade-item-flag">${item.teamFlag}</div>
-                        <div class="trade-item-team">${item.teamName}</div>
-                        <div class="trade-item-code">${item.num}</div>
-                        ${playerName ? `<div class="trade-item-player">${playerName}</div>` : ''}
-                        ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
-                    `;
-                    card.onclick = () => {
+                    grid.appendChild(makeTradeCard(item, isSelected, 'selected-given', () => {
                         if (isSelected) {
                             data.trades.pending.given = data.trades.pending.given.filter(c => c !== item.code);
                         } else {
@@ -2135,10 +2206,8 @@
                             panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
                             panel.appendChild(renderTrocasPanel());
                         }
-                    };
-                    grid.appendChild(card);
+                    }));
                 });
-
                 leftSection.appendChild(grid);
             }
 
@@ -2147,68 +2216,67 @@
             // Right: To receive
             const rightSection = document.createElement('div');
             rightSection.className = 'trades-section';
-            rightSection.innerHTML = `<div class="trades-section-title">Para receber (Conta 2)</div>`;
 
             // Get all stickers not in Conta 1 or Conta 2 to offer as receiving options
             const receivableIndex = [];
             SPECIAL_CROMOS.forEach(code => {
                 if (!hasAny(code)) {
                     const playerName = players.especiais ? (players.especiais[code] || '') : '';
-                    receivableIndex.push({
-                        code,
-                        type: 'especiais',
-                        teamCode: null,
-                        num: code,
-                        teamName: 'Especiais FIFA',
-                        teamFlag: '⭐',
-                        playerName
-                    });
+                    receivableIndex.push({ code, type: 'especiais', teamCode: null, num: code, teamName: 'Especiais FIFA', teamFlag: '⭐', playerName, groupName: 'Especiais' });
                 }
             });
-
             Object.entries(GROUPS).forEach(([groupName, group]) => {
                 if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
                         const code = `${team.code}${n}`;
                         if (!hasAny(code)) {
-                            const playerName = players.equipas && players.equipas[team.code]
-                                ? (players.equipas[team.code][n] || '') : '';
-                            receivableIndex.push({
-                                code,
-                                type: 'equipas',
-                                teamCode: team.code,
-                                num: n,
-                                teamName: team.name,
-                                teamFlag: team.flag,
-                                playerName
-                            });
+                            const playerName = players.equipas && players.equipas[team.code] ? (players.equipas[team.code][n] || '') : '';
+                            receivableIndex.push({ code, type: 'equipas', teamCode: team.code, num: n, teamName: team.name, teamFlag: team.flag, playerName, groupName });
                         }
                     });
                 });
             });
+
+            const selectedReceiveCount = data.trades.pending.received.length;
+            rightSection.innerHTML = `
+                <div class="trades-section-title">
+                    Para receber (Conta 2)
+                    ${selectedReceiveCount > 0 ? `<span style="background:var(--conta2);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedReceiveCount} selecionado${selectedReceiveCount !== 1 ? 's' : ''}</span>` : ''}
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+                    <select class="filter-select" onchange="setTrocasFilter('receiveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
+                        <option value="todos" ${trocasFilter.receiveGrupo==='todos'?'selected':''}>Todos os grupos</option>
+                        ${grupos.map(g=>`<option value="${g}" ${trocasFilter.receiveGrupo===g?'selected':''}>${g}</option>`).join('')}
+                    </select>
+                    ${selectedReceiveCount > 0 ? `<button class="filter-pill active" onclick="setTrocasFilter('receiveGrupo','__selected__')" style="font-size:11px;padding:4px 10px;background:var(--conta2);border-color:var(--conta2)">Só selecionados</button>` : ''}
+                </div>
+            `;
+
+            let filteredReceive = receivableIndex;
+            if (trocasFilter.receiveGrupo === '__selected__') {
+                filteredReceive = filteredReceive.filter(i => data.trades.pending.received.includes(i.code));
+            } else if (trocasFilter.receiveGrupo !== 'todos') {
+                filteredReceive = filteredReceive.filter(i => i.groupName === trocasFilter.receiveGrupo);
+            }
+            filteredReceive = sortItems(filteredReceive);
 
             if (receivableIndex.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'trades-empty';
                 empty.textContent = 'Já tens todos os cromos!';
                 rightSection.appendChild(empty);
+            } else if (filteredReceive.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'trades-empty';
+                empty.textContent = 'Nenhum cromo encontrado com este filtro.';
+                rightSection.appendChild(empty);
             } else {
                 const grid = document.createElement('div');
                 grid.className = 'trades-grid';
-
-                receivableIndex.forEach(item => {
+                filteredReceive.forEach(item => {
                     const isSelected = data.trades.pending.received.includes(item.code);
-                    const card = document.createElement('div');
-                    card.className = 'trade-item' + (isSelected ? ' selected-received' : '');
-                    card.innerHTML = `
-                        <div class="trade-item-flag">${item.teamFlag}</div>
-                        <div class="trade-item-team">${item.teamName}</div>
-                        <div class="trade-item-code">${item.num}</div>
-                        ${item.playerName ? `<div class="trade-item-player">${item.playerName}</div>` : ''}
-                        ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
-                    `;
-                    card.onclick = () => {
+                    grid.appendChild(makeTradeCard(item, isSelected, 'selected-received', () => {
                         if (isSelected) {
                             data.trades.pending.received = data.trades.pending.received.filter(c => c !== item.code);
                         } else {
@@ -2220,10 +2288,8 @@
                             panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
                             panel.appendChild(renderTrocasPanel());
                         }
-                    };
-                    grid.appendChild(card);
+                    }));
                 });
-
                 rightSection.appendChild(grid);
             }
 
