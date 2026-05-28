@@ -771,6 +771,194 @@
             font-size: 15px;
         }
 
+        /* ===== TRADES ===== */
+        .trades-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .trades-section {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid var(--border);
+        }
+
+        .trades-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .trades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+        }
+
+        .trade-item {
+            aspect-ratio: 5/6;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            position: relative;
+            user-select: none;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text);
+        }
+
+        .trade-item:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .trade-item.selected-given {
+            background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .trade-item.selected-received {
+            background: linear-gradient(135deg, var(--conta2) 0%, #5b21b6 100%);
+            border-color: var(--conta2);
+            color: white;
+        }
+
+        .trade-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .trade-checkmark {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: white;
+            color: var(--accent);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .trade-item.selected-received .trade-checkmark {
+            color: var(--conta2);
+        }
+
+        .trades-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .trades-actions button {
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .trades-empty {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .trade-history {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .trade-history-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .trade-record {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .trade-record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .trade-record-items {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .trade-record-items div {
+            flex: 1;
+        }
+
+        .trade-record-items strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+
+        @media (max-width: 768px) {
+            .trades-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ===== SEARCH ===== */
         .search-bar {
             position: relative;
@@ -1000,6 +1188,11 @@
                 icon: '',
                 teams: []
             },
+            'Trocas': {
+                key: 'trocas',
+                icon: '🔄',
+                teams: []
+            },
             'Especiais': {
                 key: 'especiais',
                 icon: '⭐',
@@ -1166,6 +1359,11 @@
             if (!Array.isArray(data.tenho)) data.tenho = [];
             if (!Array.isArray(data.conta2)) data.conta2 = [];
             if (!data.duplicados || typeof data.duplicados !== 'object') data.duplicados = {};
+            if (!data.trades || typeof data.trades !== 'object') {
+                data.trades = { pending: { given: [], received: [] }, history: [] };
+            }
+            if (!data.trades.pending) data.trades.pending = { given: [], received: [] };
+            if (!Array.isArray(data.trades.history)) data.trades.history = [];
         }
 
         // Helpers
@@ -1295,6 +1493,13 @@
                         </div>
                     `;
                     panel.appendChild(renderEquipasPanel());
+                } else if (name === 'Trocas') {
+                    panel.innerHTML = `
+                        <div class="panel-header">
+                            <div class="panel-title">🔄 Trocas</div>
+                        </div>
+                    `;
+                    panel.appendChild(renderTrocasPanel());
                 } else {
                     const stats = getGroupStats(name);
                     panel.innerHTML = `
@@ -1325,7 +1530,7 @@
         function calculateInsights() {
             const teamStats = [];
             Object.entries(GROUPS).forEach(([name, group]) => {
-                if (name === 'Insights' || name === 'Especiais') return;
+                if (name === 'Insights' || name === 'Especiais' || name === 'Equipas' || name === 'Trocas') return;
                 group.teams.forEach(team => {
                     const ownedNums = CROMO_NUMBERS.filter(n => hasAny(`${team.code}${n}`));
                     teamStats.push({ team, groupName: name, owned: ownedNums.length, ownedNums });
@@ -1357,7 +1562,7 @@
             const gruposCompletos = [];
             const gruposProgresso = [];
             Object.entries(GROUPS).forEach(([name]) => {
-                if (name === 'Insights' || name === 'Especiais' || name === 'Equipas') return;
+                if (name === 'Insights' || name === 'Especiais' || name === 'Equipas' || name === 'Trocas') return;
                 const s = getGroupStats(name);
                 gruposProgresso.push({ name, owned: s.owned, total: s.total, pct: Math.round((s.owned / s.total) * 100) });
                 if (s.owned === s.total) gruposCompletos.push(name);
@@ -1623,7 +1828,7 @@
         // ============ STATS ============
         function getGroupStats(groupName) {
             const group = GROUPS[groupName];
-            if (groupName === 'Insights' || groupName === 'Equipas') {
+            if (groupName === 'Insights' || groupName === 'Equipas' || groupName === 'Trocas') {
                 return { owned: 0, total: 0 };
             }
             if (groupName === 'Especiais') {
@@ -1701,7 +1906,7 @@
             // Filtrar e recolher equipas
             let teams = [];
             Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas') return;
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 if (equipasFilter.grupo !== 'todos' && groupName !== equipasFilter.grupo) return;
                 group.teams.forEach((team, teamIdx) => {
                     const matchingNums = CROMO_NUMBERS.filter(n => {
@@ -1719,7 +1924,7 @@
             });
 
             // Ordenar
-            const groupOrder = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas');
+            const groupOrder = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas' && g !== 'Trocas');
             teams.sort((a, b) => {
                 if (equipasFilter.sort === 'az') return a.team.name.localeCompare(b.team.name, 'pt');
                 if (equipasFilter.sort === 'za') return b.team.name.localeCompare(a.team.name, 'pt');
@@ -1733,7 +1938,7 @@
             });
 
             // Filtros UI
-            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas');
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas' && g !== 'Trocas');
             const filters = document.createElement('div');
             filters.className = 'filter-row';
             filters.innerHTML = `
@@ -1800,6 +2005,295 @@
             return wrap;
         }
 
+        // ============ TROCAS (TRADES) ============
+        function getTrocasIndex() {
+            const trocasIndex = [];
+
+            // Stickers available to give (Conta 1 with duplicates)
+            Object.keys(data.duplicados).forEach(code => {
+                if (data.duplicados[code] > 0 && hasCromo(code)) {
+                    // Find team and number
+                    SPECIAL_CROMOS.forEach(special => {
+                        if (special === code) {
+                            trocasIndex.push({
+                                code,
+                                type: 'especiais',
+                                teamCode: null,
+                                num: code,
+                                teamName: 'Especiais FIFA',
+                                teamFlag: '⭐',
+                                available: true
+                            });
+                        }
+                    });
+                    Object.entries(GROUPS).forEach(([groupName, group]) => {
+                        if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                        group.teams.forEach(team => {
+                            CROMO_NUMBERS.forEach(n => {
+                                if (`${team.code}${n}` === code) {
+                                    trocasIndex.push({
+                                        code,
+                                        type: 'equipas',
+                                        teamCode: team.code,
+                                        num: n,
+                                        teamName: team.name,
+                                        teamFlag: team.flag,
+                                        available: true
+                                    });
+                                }
+                            });
+                        });
+                    });
+                }
+            });
+
+            return trocasIndex;
+        }
+
+        function renderTrocasPanel() {
+            const wrap = document.createElement('div');
+            ensureDataIntegrity();
+
+            const availableToGive = getTrocasIndex();
+
+            // Main container
+            const container = document.createElement('div');
+
+            // Trade selection section
+            const selectionDiv = document.createElement('div');
+            selectionDiv.className = 'trades-container';
+
+            // Left: Available to give
+            const leftSection = document.createElement('div');
+            leftSection.className = 'trades-section';
+            leftSection.innerHTML = `<div class="trades-section-title">Disponível para dar</div>`;
+
+            if (availableToGive.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'trades-empty';
+                empty.textContent = 'Não tens duplicados em Conta 1';
+                leftSection.appendChild(empty);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'trades-grid';
+
+                availableToGive.forEach(item => {
+                    const isSelected = data.trades.pending.given.includes(item.code);
+                    const card = document.createElement('div');
+                    card.className = 'trade-item' + (isSelected ? ' selected-given' : '');
+                    card.innerHTML = `
+                        <div>${item.teamCode || '⭐'}</div>
+                        <div>${item.num}</div>
+                        ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
+                    `;
+                    card.onclick = () => {
+                        if (isSelected) {
+                            data.trades.pending.given = data.trades.pending.given.filter(c => c !== item.code);
+                        } else {
+                            data.trades.pending.given.push(item.code);
+                        }
+                        saveData();
+                        const panel = document.querySelector('[data-panel="Trocas"]');
+                        if (panel) {
+                            panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                            panel.appendChild(renderTrocasPanel());
+                        }
+                    };
+                    grid.appendChild(card);
+                });
+
+                leftSection.appendChild(grid);
+            }
+
+            selectionDiv.appendChild(leftSection);
+
+            // Right: To receive
+            const rightSection = document.createElement('div');
+            rightSection.className = 'trades-section';
+            rightSection.innerHTML = `<div class="trades-section-title">Para receber (Conta 2)</div>`;
+
+            // Get all stickers not in Conta 1 or Conta 2 to offer as receiving options
+            const receivableIndex = [];
+            SPECIAL_CROMOS.forEach(code => {
+                if (!hasAny(code)) {
+                    const playerName = players.especiais ? (players.especiais[code] || '') : '';
+                    receivableIndex.push({
+                        code,
+                        type: 'especiais',
+                        teamCode: null,
+                        num: code,
+                        teamName: 'Especiais FIFA',
+                        teamFlag: '⭐',
+                        playerName
+                    });
+                }
+            });
+
+            Object.entries(GROUPS).forEach(([groupName, group]) => {
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                group.teams.forEach(team => {
+                    CROMO_NUMBERS.forEach(n => {
+                        const code = `${team.code}${n}`;
+                        if (!hasAny(code)) {
+                            const playerName = players.equipas && players.equipas[team.code]
+                                ? (players.equipas[team.code][n] || '') : '';
+                            receivableIndex.push({
+                                code,
+                                type: 'equipas',
+                                teamCode: team.code,
+                                num: n,
+                                teamName: team.name,
+                                teamFlag: team.flag,
+                                playerName
+                            });
+                        }
+                    });
+                });
+            });
+
+            if (receivableIndex.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'trades-empty';
+                empty.textContent = 'Já tens todos os cromos!';
+                rightSection.appendChild(empty);
+            } else {
+                const grid = document.createElement('div');
+                grid.className = 'trades-grid';
+
+                receivableIndex.forEach(item => {
+                    const isSelected = data.trades.pending.received.includes(item.code);
+                    const card = document.createElement('div');
+                    card.className = 'trade-item' + (isSelected ? ' selected-received' : '');
+                    card.innerHTML = `
+                        <div>${item.teamCode || '⭐'}</div>
+                        <div>${item.num}</div>
+                        ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
+                    `;
+                    card.onclick = () => {
+                        if (isSelected) {
+                            data.trades.pending.received = data.trades.pending.received.filter(c => c !== item.code);
+                        } else {
+                            data.trades.pending.received.push(item.code);
+                        }
+                        saveData();
+                        const panel = document.querySelector('[data-panel="Trocas"]');
+                        if (panel) {
+                            panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                            panel.appendChild(renderTrocasPanel());
+                        }
+                    };
+                    grid.appendChild(card);
+                });
+
+                rightSection.appendChild(grid);
+            }
+
+            selectionDiv.appendChild(rightSection);
+            container.appendChild(selectionDiv);
+
+            // Action buttons
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'trades-actions';
+
+            const completeBtn = document.createElement('button');
+            completeBtn.className = 'btn-primary';
+            completeBtn.textContent = `✓ Confirmar Troca (${data.trades.pending.given.length} → ${data.trades.pending.received.length})`;
+            completeBtn.disabled = data.trades.pending.given.length === 0 || data.trades.pending.received.length === 0;
+            completeBtn.onclick = () => {
+                if (data.trades.pending.given.length > 0 && data.trades.pending.received.length > 0) {
+                    // Move given stickers from duplicates to regular (remove the duplicate count)
+                    data.trades.pending.given.forEach(code => {
+                        const dups = getDups(code);
+                        if (dups > 1) {
+                            setDups(code, dups - 1);
+                        } else {
+                            setDups(code, 0);
+                        }
+                    });
+
+                    // Add received stickers to Conta 2
+                    data.trades.pending.received.forEach(code => {
+                        setConta2(code, true);
+                    });
+
+                    // Record in history
+                    data.trades.history.push({
+                        id: Date.now().toString(),
+                        date: new Date().toISOString(),
+                        given: [...data.trades.pending.given],
+                        received: [...data.trades.pending.received]
+                    });
+
+                    // Clear pending
+                    data.trades.pending = { given: [], received: [] };
+
+                    saveData();
+                    showToast('✓ Troca confirmada!');
+
+                    const panel = document.querySelector('[data-panel="Trocas"]');
+                    if (panel) {
+                        panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                        panel.appendChild(renderTrocasPanel());
+                    }
+                    renderContent();
+                    renderTabs();
+                    updateStats();
+                }
+            };
+            actionsDiv.appendChild(completeBtn);
+
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'btn-secondary';
+            clearBtn.textContent = 'Limpar';
+            clearBtn.onclick = () => {
+                data.trades.pending = { given: [], received: [] };
+                saveData();
+                const panel = document.querySelector('[data-panel="Trocas"]');
+                if (panel) {
+                    panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                    panel.appendChild(renderTrocasPanel());
+                }
+            };
+            actionsDiv.appendChild(clearBtn);
+
+            container.appendChild(actionsDiv);
+
+            // History section
+            if (data.trades.history.length > 0) {
+                const historyDiv = document.createElement('div');
+                historyDiv.className = 'trade-history';
+                historyDiv.innerHTML = `<div class="trade-history-title">Histórico de trocas</div>`;
+
+                data.trades.history.slice().reverse().forEach(trade => {
+                    const record = document.createElement('div');
+                    record.className = 'trade-record';
+
+                    const date = new Date(trade.date);
+                    const dateStr = date.toLocaleDateString('pt-PT') + ' ' + date.toLocaleTimeString('pt-PT', {hour: '2-digit', minute: '2-digit'});
+
+                    record.innerHTML = `
+                        <div class="trade-record-header">${dateStr}</div>
+                        <div class="trade-record-items">
+                            <div>
+                                <strong>Dei (${trade.given.length}):</strong>
+                                ${trade.given.map(c => `<span>${c}</span>`).join(', ')}
+                            </div>
+                            <div>
+                                <strong>Recebi (${trade.received.length}):</strong>
+                                ${trade.received.map(c => `<span>${c}</span>`).join(', ')}
+                            </div>
+                        </div>
+                    `;
+                    historyDiv.appendChild(record);
+                });
+
+                container.appendChild(historyDiv);
+            }
+
+            wrap.appendChild(container);
+            return wrap;
+        }
+
         // ============ SEARCH ============
         let searchQuery = '';
 
@@ -1862,7 +2356,7 @@
             });
 
             Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais') return;
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(num => {
                         const playerName = players.equipas && players.equipas[team.code]
