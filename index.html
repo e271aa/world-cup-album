@@ -2012,7 +2012,7 @@
         }
 
         // ============ TROCAS (TRADES) ============
-        let trocasFilter = { giveGrupo: 'todos', receiveGrupo: 'todos', sort: 'az' };
+        let trocasFilter = { giveGrupo: 'todos', receiveGrupo: 'todos', sort: 'az', giveSearch: '', receiveSearch: '' };
 
         function setTrocasFilter(key, value) {
             trocasFilter[key] = value;
@@ -2023,6 +2023,19 @@
                     panel.appendChild(renderTrocasPanel());
                 }
             });
+        }
+
+        function setTrocasSearch(key, value) {
+            trocasFilter[key] = value;
+            // Debounce ligeiro para não re-renderizar a cada tecla
+            clearTimeout(trocasFilter._searchTimeout);
+            trocasFilter._searchTimeout = setTimeout(() => {
+                const panel = document.querySelector('[data-panel="Trocas"]');
+                if (panel) {
+                    panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                    panel.appendChild(renderTrocasPanel());
+                }
+            }, 150);
         }
 
         function getTrocasIndex() {
@@ -2093,13 +2106,27 @@
 
             function sortItems(items) {
                 return [...items].sort((a, b) => {
-                    if (trocasFilter.sort === 'az') return a.teamName.localeCompare(b.teamName, 'pt');
+                    if (trocasFilter.sort === 'az')   return a.teamName.localeCompare(b.teamName, 'pt');
+                    if (trocasFilter.sort === 'za')   return b.teamName.localeCompare(a.teamName, 'pt');
+                    if (trocasFilter.sort === 'num')  return parseInt(a.num) - parseInt(b.num);
+                    if (trocasFilter.sort === 'dups') return getDups(b.code) - getDups(a.code);
                     if (trocasFilter.sort === 'grupo') {
                         const gi = grupos.indexOf(a.groupName) - grupos.indexOf(b.groupName);
                         return gi !== 0 ? gi : a.teamName.localeCompare(b.teamName, 'pt');
                     }
                     return 0;
                 });
+            }
+
+            function applySearch(items, query) {
+                if (!query) return items;
+                const q = normalize(query);
+                return items.filter(i =>
+                    normalize(i.teamName).includes(q) ||
+                    normalize(i.playerName || '').includes(q) ||
+                    normalize(i.code).includes(q) ||
+                    normalize(i.groupName || '').includes(q)
+                );
             }
 
             function makeTradeCard(item, isSelected, colorClass, onToggle) {
@@ -2130,16 +2157,20 @@
                     Disponível para dar
                     ${selectedGiveCount > 0 ? `<span style="background:var(--accent);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedGiveCount} selecionado${selectedGiveCount !== 1 ? 's' : ''}</span>` : ''}
                 </div>
+                <input type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.giveSearch}" oninput="setTrocasSearch('giveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                     <select class="filter-select" onchange="setTrocasFilter('giveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
                         <option value="todos" ${trocasFilter.giveGrupo==='todos'?'selected':''}>Todos os grupos</option>
                         ${grupos.map(g=>`<option value="${g}" ${trocasFilter.giveGrupo===g?'selected':''}>${g}</option>`).join('')}
                     </select>
                     <select class="filter-select" onchange="setTrocasFilter('sort',this.value)" style="font-size:12px;padding:5px 10px">
-                        <option value="az" ${trocasFilter.sort==='az'?'selected':''}>A → Z</option>
+                        <option value="az"    ${trocasFilter.sort==='az'   ?'selected':''}>A → Z</option>
+                        <option value="za"    ${trocasFilter.sort==='za'   ?'selected':''}>Z → A</option>
                         <option value="grupo" ${trocasFilter.sort==='grupo'?'selected':''}>Por grupo</option>
+                        <option value="num"   ${trocasFilter.sort==='num'  ?'selected':''}>Por nº</option>
+                        <option value="dups"  ${trocasFilter.sort==='dups' ?'selected':''}>Mais duplicados</option>
                     </select>
-                    ${selectedGiveCount > 0 ? `<button class="filter-pill active" onclick="setTrocasFilter('giveGrupo','__selected__')" style="font-size:11px;padding:4px 10px">Só selecionados</button>` : ''}
+                    ${selectedGiveCount > 0 ? `<button class="filter-pill ${trocasFilter.giveGrupo==='__selected__'?'active':''}" onclick="setTrocasFilter('giveGrupo','${trocasFilter.giveGrupo==='__selected__'?'todos':'__selected__'}')" style="font-size:11px;padding:4px 10px">Só selecionados</button>` : ''}
                 </div>
             `;
 
@@ -2158,6 +2189,7 @@
             } else if (trocasFilter.giveGrupo !== 'todos') {
                 filteredGive = filteredGive.filter(i => i.groupName === trocasFilter.giveGrupo);
             }
+            filteredGive = applySearch(filteredGive, trocasFilter.giveSearch);
             filteredGive = sortItems(filteredGive);
 
             if (availableToGive.length === 0) {
@@ -2225,12 +2257,19 @@
                     Para receber (Conta 2)
                     ${selectedReceiveCount > 0 ? `<span style="background:var(--conta2);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedReceiveCount} selecionado${selectedReceiveCount !== 1 ? 's' : ''}</span>` : ''}
                 </div>
+                <input type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.receiveSearch}" oninput="setTrocasSearch('receiveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                     <select class="filter-select" onchange="setTrocasFilter('receiveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
                         <option value="todos" ${trocasFilter.receiveGrupo==='todos'?'selected':''}>Todos os grupos</option>
                         ${grupos.map(g=>`<option value="${g}" ${trocasFilter.receiveGrupo===g?'selected':''}>${g}</option>`).join('')}
                     </select>
-                    ${selectedReceiveCount > 0 ? `<button class="filter-pill active" onclick="setTrocasFilter('receiveGrupo','__selected__')" style="font-size:11px;padding:4px 10px;background:var(--conta2);border-color:var(--conta2)">Só selecionados</button>` : ''}
+                    <select class="filter-select" onchange="setTrocasFilter('sort',this.value)" style="font-size:12px;padding:5px 10px">
+                        <option value="az"    ${trocasFilter.sort==='az'   ?'selected':''}>A → Z</option>
+                        <option value="za"    ${trocasFilter.sort==='za'   ?'selected':''}>Z → A</option>
+                        <option value="grupo" ${trocasFilter.sort==='grupo'?'selected':''}>Por grupo</option>
+                        <option value="num"   ${trocasFilter.sort==='num'  ?'selected':''}>Por nº</option>
+                    </select>
+                    ${selectedReceiveCount > 0 ? `<button class="filter-pill ${trocasFilter.receiveGrupo==='__selected__'?'active':''}" onclick="setTrocasFilter('receiveGrupo','${trocasFilter.receiveGrupo==='__selected__'?'todos':'__selected__'}')" style="font-size:11px;padding:4px 10px;${trocasFilter.receiveGrupo==='__selected__'?'':'background:var(--bg);color:var(--text-muted);border-color:var(--border)'}">Só selecionados</button>` : ''}
                 </div>
             `;
 
@@ -2240,6 +2279,7 @@
             } else if (trocasFilter.receiveGrupo !== 'todos') {
                 filteredReceive = filteredReceive.filter(i => i.groupName === trocasFilter.receiveGrupo);
             }
+            filteredReceive = applySearch(filteredReceive, trocasFilter.receiveSearch);
             filteredReceive = sortItems(filteredReceive);
 
             if (receivableIndex.length === 0) {
