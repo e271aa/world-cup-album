@@ -910,6 +910,29 @@
             color: white;
         }
 
+        .btn-icon-copy {
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            color: var(--text-muted);
+            font-size: 13px;
+            gap: 4px;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-icon-copy:hover:not(:disabled) {
+            background: var(--border);
+            color: var(--text);
+            border-color: var(--text-muted);
+        }
+        .btn-icon-copy:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .trades-empty {
             text-align: center;
             padding: 32px 16px;
@@ -2304,21 +2327,31 @@
                 updateTrocasGrid('receive');
             });
 
-            // Copy duplicates button
+            // Copy buttons row
             const copyDiv = document.createElement('div');
-            copyDiv.style.cssText = 'margin-bottom:12px';
+            copyDiv.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;justify-content:flex-end';
 
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'btn-secondary';
-            copyBtn.style.cssText = 'width:100%;justify-content:center;font-size:13px';
+            function doCopy(text, label) {
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`📋 ${label} copiado!`);
+                }).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;opacity:0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast(`📋 ${label} copiado!`);
+                });
+            }
 
             function buildDupString() {
                 const parts = [];
                 Object.keys(data.duplicados).sort().forEach(code => {
                     const n = data.duplicados[code];
                     if (n < 1 || !hasAny(code)) return;
-
-                    // Find team and player
                     let teamCode = null, num = null, playerName = '';
                     SPECIAL_CROMOS.forEach(s => {
                         if (s === code) { teamCode = 'FIFA'; num = code; playerName = players.especiais?.[code] || code; }
@@ -2328,49 +2361,42 @@
                             if (gn === 'Insights' || gn === 'Especiais' || gn === 'Equipas' || gn === 'Trocas') return;
                             g.teams.forEach(team => {
                                 CROMO_NUMBERS.forEach(nr => {
-                                    if (`${team.code}${nr}` === code) {
-                                        teamCode = team.code;
-                                        num = nr;
-                                        playerName = players.equipas?.[team.code]?.[nr] || '';
-                                    }
+                                    if (`${team.code}${nr}` === code) { teamCode = team.code; num = nr; playerName = players.equipas?.[team.code]?.[nr] || ''; }
                                 });
                             });
                         });
                     }
-
                     if (!teamCode) return;
                     const label = playerName ? `${teamCode} ${playerName}` : `${teamCode}${num}`;
-                    // Se tiver mais do que 1 duplicado, repete N vezes
                     for (let i = 0; i < n; i++) parts.push(label);
                 });
                 return parts.join(' | ');
             }
 
-            const totalDups = Object.values(data.duplicados).filter(n => n > 0).length;
-            copyBtn.textContent = totalDups === 0
-                ? '📋 Sem duplicados para copiar'
-                : `📋 Copiar duplicados (${totalDups})`;
-            copyBtn.disabled = totalDups === 0;
+            function buildMissingString() {
+                return buildReceivableIndex()
+                    .map(item => item.playerName ? `${item.teamCode || 'FIFA'} ${item.playerName}` : `${item.teamCode || 'FIFA'}${item.num}`)
+                    .join(' | ');
+            }
 
-            copyBtn.onclick = () => {
-                const text = buildDupString();
-                if (!text) return;
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast('📋 Copiado para o clipboard!');
-                }).catch(() => {
-                    // fallback
-                    const ta = document.createElement('textarea');
-                    ta.value = text;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                    showToast('📋 Copiado para o clipboard!');
-                });
-            };
-            copyDiv.appendChild(copyBtn);
+            const totalDups = Object.values(data.duplicados).filter(n => n > 0).length;
+            const totalMissing = buildReceivableIndex().length;
+
+            const copyDupsBtn = document.createElement('button');
+            copyDupsBtn.className = 'btn-icon-copy';
+            copyDupsBtn.title = `Copiar duplicados (${totalDups})`;
+            copyDupsBtn.disabled = totalDups === 0;
+            copyDupsBtn.innerHTML = `<span style="font-size:15px">📋</span><span style="font-size:10px;font-weight:700;opacity:.85">×${totalDups}</span>`;
+            copyDupsBtn.onclick = () => doCopy(buildDupString(), 'Duplicados');
+
+            const copyMissingBtn = document.createElement('button');
+            copyMissingBtn.className = 'btn-icon-copy';
+            copyMissingBtn.title = `Copiar em falta (${totalMissing})`;
+            copyMissingBtn.innerHTML = `<span style="font-size:15px">📭</span><span style="font-size:10px;font-weight:700;opacity:.85">${totalMissing}</span>`;
+            copyMissingBtn.onclick = () => doCopy(buildMissingString(), 'Em falta');
+
+            copyDiv.appendChild(copyDupsBtn);
+            copyDiv.appendChild(copyMissingBtn);
             container.appendChild(copyDiv);
 
             // Action buttons
