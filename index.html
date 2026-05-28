@@ -2339,13 +2339,6 @@
 
             selectionDiv.appendChild(leftSection);
             selectionDiv.appendChild(rightSection);
-            container.appendChild(selectionDiv);
-
-            // Populate grids after DOM is ready
-            requestAnimationFrame(() => {
-                if (hasAnyDups) updateTrocasGrid('give');
-                updateTrocasGrid('receive');
-            });
 
             // Copy buttons row
             const copyDiv = document.createElement('div');
@@ -2421,6 +2414,13 @@
             copyDiv.appendChild(copyDupsBtn);
             copyDiv.appendChild(copyMissingBtn);
             container.appendChild(copyDiv);
+            container.appendChild(selectionDiv);
+
+            // Populate grids after DOM is ready
+            requestAnimationFrame(() => {
+                if (hasAnyDups) updateTrocasGrid('give');
+                updateTrocasGrid('receive');
+            });
 
             // Action buttons
             const actionsDiv = document.createElement('div');
