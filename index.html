@@ -2317,6 +2317,75 @@
             selectionDiv.appendChild(rightSection);
             container.appendChild(selectionDiv);
 
+            // Copy duplicates button
+            const copyDiv = document.createElement('div');
+            copyDiv.style.cssText = 'margin-bottom:12px';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn-secondary';
+            copyBtn.style.cssText = 'width:100%;justify-content:center;font-size:13px';
+
+            function buildDupString() {
+                const parts = [];
+                Object.keys(data.duplicados).sort().forEach(code => {
+                    const n = data.duplicados[code];
+                    if (n < 1 || !hasAny(code)) return;
+
+                    // Find team and player
+                    let teamCode = null, num = null, playerName = '';
+                    SPECIAL_CROMOS.forEach(s => {
+                        if (s === code) { teamCode = 'FIFA'; num = code; playerName = players.especiais?.[code] || code; }
+                    });
+                    if (!teamCode) {
+                        Object.entries(GROUPS).forEach(([gn, g]) => {
+                            if (gn === 'Insights' || gn === 'Especiais' || gn === 'Equipas' || gn === 'Trocas') return;
+                            g.teams.forEach(team => {
+                                CROMO_NUMBERS.forEach(nr => {
+                                    if (`${team.code}${nr}` === code) {
+                                        teamCode = team.code;
+                                        num = nr;
+                                        playerName = players.equipas?.[team.code]?.[nr] || '';
+                                    }
+                                });
+                            });
+                        });
+                    }
+
+                    if (!teamCode) return;
+                    const label = playerName ? `${teamCode} ${playerName}` : `${teamCode}${num}`;
+                    // Se tiver mais do que 1 duplicado, repete N vezes
+                    for (let i = 0; i < n; i++) parts.push(label);
+                });
+                return parts.join(' | ');
+            }
+
+            const totalDups = Object.values(data.duplicados).filter(n => n > 0).length;
+            copyBtn.textContent = totalDups === 0
+                ? '📋 Sem duplicados para copiar'
+                : `📋 Copiar duplicados (${totalDups})`;
+            copyBtn.disabled = totalDups === 0;
+
+            copyBtn.onclick = () => {
+                const text = buildDupString();
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('📋 Copiado para o clipboard!');
+                }).catch(() => {
+                    // fallback
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('📋 Copiado para o clipboard!');
+                });
+            };
+            copyDiv.appendChild(copyBtn);
+            container.appendChild(copyDiv);
+
             // Action buttons
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'trades-actions';
