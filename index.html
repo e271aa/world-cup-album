@@ -1177,7 +1177,7 @@
             <div class="legend-item"><div class="legend-dot owned"></div>Conta 1</div>
             <div class="legend-item"><div class="legend-dot conta2"></div>Conta 2</div>
             <div class="legend-item"><div class="legend-dot duplicate"></div>Duplicado</div>
-            <div class="legend-item">💡 Clica para marcar · Botões + / − para duplicados</div>
+            <div class="legend-item">💡 Clica para ciclar entre estados · Botões +/− incrementam duplicados</div>
         </div>
 
         <!-- SEARCH -->
@@ -1825,22 +1825,21 @@
                 if (btn) {
                     e.stopPropagation();
                     if (btn.dataset.action === 'add') {
-                        // + avança: nenhum→C1 | C1→C2 | C2→C1+dup
+                        // + incrementa duplicados se em C1, ou avança no ciclo
                         if (!_c1 && !_c2)     setHas(code, true);
-                        else if (_c1 && !_c2) { setHas(code, false); setConta2(code, true); }
-                        else if (_c2)         { setConta2(code, false); setHas(code, true); setDups(code, d + 1); }
+                        else if (_c1)         setDups(code, d + 1);  // Incrementa duplicados
+                        else if (_c2)         { setConta2(code, false); setHas(code, true); setDups(code, 1); }
                     } else {
-                        // − recua: C1+dup→C2 | C2→C1 | C1→nenhum
-                        if (d > 0)            { setHas(code, false); setConta2(code, true); setDups(code, 0); }
+                        // − decrementa duplicados se em C1, ou recua no ciclo
+                        if (d > 0 && _c1)     setDups(code, d - 1);  // Decrementa duplicados
                         else if (_c2)         { setConta2(code, false); setHas(code, true); }
-                        else if (_c1)         setHas(code, false);
+                        else if (_c1 && d === 0) setHas(code, false);
                     }
                 } else {
-                    // Ciclo principal: nenhum → C1 → C2 → C1+dup → nenhum
+                    // Ciclo principal: nenhum → C1 → C2 → nenhum
                     if (!_c1 && !_c2)         setHas(code, true);
-                    else if (_c1 && d === 0)  { setHas(code, false); setConta2(code, true); }
-                    else if (_c2)             { setConta2(code, false); setHas(code, true); setDups(code, 1); }
-                    else                      { setHas(code, false); setDups(code, 0); }
+                    else if (_c1)             { setHas(code, false); setConta2(code, true); }
+                    else if (_c2)             { setConta2(code, false); setHas(code, true); }
                 }
                 saveData();
                 if (searchQuery) {
