@@ -2027,15 +2027,29 @@
 
         function setTrocasSearch(key, value) {
             trocasFilter[key] = value;
-            // Debounce ligeiro para não re-renderizar a cada tecla
+            trocasFilter._lastSearchKey = key;
             clearTimeout(trocasFilter._searchTimeout);
             trocasFilter._searchTimeout = setTimeout(() => {
+                // Guarda posição do cursor antes de re-renderizar
+                const inputId = key === 'giveSearch' ? 'trocas-give-search' : 'trocas-receive-search';
+                const oldInput = document.getElementById(inputId);
+                const cursorPos = oldInput ? oldInput.selectionStart : null;
+
                 const panel = document.querySelector('[data-panel="Trocas"]');
                 if (panel) {
                     panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
                     panel.appendChild(renderTrocasPanel());
                 }
-            }, 150);
+
+                // Restaura foco e posição do cursor
+                const newInput = document.getElementById(inputId);
+                if (newInput) {
+                    newInput.focus();
+                    if (cursorPos !== null) {
+                        newInput.setSelectionRange(cursorPos, cursorPos);
+                    }
+                }
+            }, 120);
         }
 
         function getTrocasIndex() {
@@ -2157,7 +2171,7 @@
                     Disponível para dar
                     ${selectedGiveCount > 0 ? `<span style="background:var(--accent);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedGiveCount} selecionado${selectedGiveCount !== 1 ? 's' : ''}</span>` : ''}
                 </div>
-                <input type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.giveSearch}" oninput="setTrocasSearch('giveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
+                <input id="trocas-give-search" type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.giveSearch}" oninput="setTrocasSearch('giveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                     <select class="filter-select" onchange="setTrocasFilter('giveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
                         <option value="todos" ${trocasFilter.giveGrupo==='todos'?'selected':''}>Todos os grupos</option>
@@ -2257,7 +2271,7 @@
                     Para receber (Conta 2)
                     ${selectedReceiveCount > 0 ? `<span style="background:var(--conta2);color:white;padding:2px 8px;border-radius:999px;font-size:11px;margin-left:6px">${selectedReceiveCount} selecionado${selectedReceiveCount !== 1 ? 's' : ''}</span>` : ''}
                 </div>
-                <input type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.receiveSearch}" oninput="setTrocasSearch('receiveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
+                <input id="trocas-receive-search" type="text" class="search-input" placeholder="Pesquisar equipa ou jogador..." value="${trocasFilter.receiveSearch}" oninput="setTrocasSearch('receiveSearch',this.value)" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:10px;padding:8px 12px;font-size:13px">
                 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
                     <select class="filter-select" onchange="setTrocasFilter('receiveGrupo',this.value)" style="font-size:12px;padding:5px 10px">
                         <option value="todos" ${trocasFilter.receiveGrupo==='todos'?'selected':''}>Todos os grupos</option>
