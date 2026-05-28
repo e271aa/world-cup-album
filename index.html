@@ -419,24 +419,12 @@
             background: rgba(255,255,255,0.5);
         }
 
-        /* Duplicate state */
-        .cromo.duplicate {
-            background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
-            border-color: var(--accent);
-            color: white;
-        }
-
-        .cromo.duplicate .cromo-code,
-        .cromo.duplicate .cromo-num {
-            color: white;
-        }
-
         .dup-badge {
             position: absolute;
             top: 4px;
             right: 4px;
-            background: white;
-            color: var(--accent);
+            background: var(--accent);
+            color: white;
             font-weight: 800;
             font-size: 11px;
             padding: 2px 6px;
@@ -444,10 +432,6 @@
             min-width: 20px;
             text-align: center;
             box-shadow: var(--shadow-sm);
-        }
-
-        .cromo.conta2 .dup-badge {
-            color: var(--conta2);
         }
 
         /* Cromo controls */
@@ -488,13 +472,11 @@
         }
 
         .cromo.owned .cromo-btn,
-        .cromo.duplicate .cromo-btn,
         .cromo.conta2 .cromo-btn {
             background: rgba(255,255,255,0.3);
         }
 
         .cromo.owned .cromo-btn:hover,
-        .cromo.duplicate .cromo-btn:hover,
         .cromo.conta2 .cromo-btn:hover {
             background: rgba(255,255,255,0.5);
         }
@@ -529,7 +511,6 @@
 
         .legend-dot.owned { background: var(--success); border-color: var(--success); }
         .legend-dot.conta2 { background: var(--conta2); border-color: var(--conta2); }
-        .legend-dot.duplicate { background: var(--accent); border-color: var(--accent); }
 
         /* ===== INSIGHTS ===== */
         .insights {
@@ -1176,8 +1157,8 @@
             <div class="legend-item"><div class="legend-dot"></div>Faltam</div>
             <div class="legend-item"><div class="legend-dot owned"></div>Conta 1</div>
             <div class="legend-item"><div class="legend-dot conta2"></div>Conta 2</div>
-            <div class="legend-item"><div class="legend-dot duplicate"></div>Duplicado</div>
-            <div class="legend-item">💡 Clica para ciclar entre estados · Botões +/− incrementam duplicados</div>
+            <div class="legend-item">🟠 Badge laranja = duplicados para trocar</div>
+            <div class="legend-item">💡 Clica para ciclar · +/− para duplicados</div>
         </div>
 
         <!-- SEARCH -->
@@ -1799,9 +1780,8 @@
 
             const el = document.createElement('div');
             el.className = 'cromo';
-            if (dups > 0)    el.classList.add('duplicate');
-            else if (c2)     el.classList.add('conta2');
-            else if (c1)     el.classList.add('owned');
+            if (c2)      el.classList.add('conta2');
+            else if (c1) el.classList.add('owned');
 
             const statusText = c2 ? '✓ Conta 2' : c1 ? '✓ Conta 1' : '';
 
@@ -1825,21 +1805,18 @@
                 if (btn) {
                     e.stopPropagation();
                     if (btn.dataset.action === 'add') {
-                        // + incrementa duplicados se em C1, ou avança no ciclo
-                        if (!_c1 && !_c2)     setHas(code, true);
-                        else if (_c1)         setDups(code, d + 1);  // Incrementa duplicados
-                        else if (_c2)         { setConta2(code, false); setHas(code, true); setDups(code, 1); }
+                        if (!_c1 && !_c2)     setHas(code, true);       // Adiciona à C1
+                        else                  setDups(code, d + 1);      // +1 duplicado (C1 ou C2)
                     } else {
-                        // − decrementa duplicados se em C1, ou recua no ciclo
-                        if (d > 0 && _c1)     setDups(code, d - 1);  // Decrementa duplicados
-                        else if (_c2)         { setConta2(code, false); setHas(code, true); }
-                        else if (_c1 && d === 0) setHas(code, false);
+                        if (d > 0)            setDups(code, d - 1);      // Remove duplicado
+                        else if (_c2)         setConta2(code, false);    // Remove da C2
+                        else if (_c1)         setHas(code, false);       // Remove da C1
                     }
                 } else {
                     // Ciclo principal: nenhum → C1 → C2 → nenhum
                     if (!_c1 && !_c2)         setHas(code, true);
                     else if (_c1)             { setHas(code, false); setConta2(code, true); }
-                    else if (_c2)             { setConta2(code, false); setHas(code, true); }
+                    else if (_c2)             setConta2(code, false);
                 }
                 saveData();
                 if (searchQuery) {
@@ -2051,9 +2028,9 @@
         function getTrocasIndex() {
             const trocasIndex = [];
 
-            // Stickers available to give (Conta 1 with duplicates)
+            // Stickers available to give (duplicates from Conta 1 OR Conta 2)
             Object.keys(data.duplicados).forEach(code => {
-                if (data.duplicados[code] > 0 && hasCromo(code)) {
+                if (data.duplicados[code] > 0 && hasAny(code)) {
                     // Find team and number
                     SPECIAL_CROMOS.forEach(special => {
                         if (special === code) {
@@ -2066,6 +2043,7 @@
                                 teamName: 'Especiais FIFA',
                                 teamFlag: '⭐',
                                 playerName,
+                                conta: hasConta2(code) ? 2 : 1,
                                 available: true
                             });
                         }
@@ -2085,6 +2063,7 @@
                                         teamName: team.name,
                                         teamFlag: team.flag,
                                         playerName,
+                                        conta: hasConta2(code) ? 2 : 1,
                                         available: true
                                     });
                                 }
@@ -2127,13 +2106,15 @@
                 const card = document.createElement('div');
                 card.className = 'trade-item' + (isSelected ? ` ${colorClass}` : '');
                 const dups = getDups(item.code);
+                const contaBadge = item.conta ? `<div style="position:absolute;bottom:4px;left:4px;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:${item.conta===2?'var(--conta2)':'var(--success)'};color:white">C${item.conta}</div>` : '';
                 card.innerHTML = `
                     <div class="trade-item-flag">${item.teamFlag}</div>
                     <div class="trade-item-team">${item.teamName}</div>
                     <div class="trade-item-code">${item.num}</div>
                     ${item.playerName ? `<div class="trade-item-player">${item.playerName}</div>` : ''}
-                    ${dups > 0 ? `<div class="trade-checkmark" style="background:rgba(0,0,0,0.15);color:white;font-size:9px">×${dups}</div>` : ''}
-                    ${isSelected ? '<div class="trade-checkmark">✓</div>' : ''}
+                    ${dups > 0 ? `<div class="trade-checkmark" style="background:var(--accent);color:white;font-size:9px">×${dups}</div>` : ''}
+                    ${isSelected ? '<div class="trade-checkmark" style="top:24px">✓</div>' : ''}
+                    ${contaBadge}
                 `;
                 card.onclick = onToggle;
                 return card;
