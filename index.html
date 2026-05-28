@@ -2027,29 +2027,156 @@
 
         function setTrocasSearch(key, value) {
             trocasFilter[key] = value;
-            trocasFilter._lastSearchKey = key;
-            clearTimeout(trocasFilter._searchTimeout);
-            trocasFilter._searchTimeout = setTimeout(() => {
-                // Guarda posição do cursor antes de re-renderizar
-                const inputId = key === 'giveSearch' ? 'trocas-give-search' : 'trocas-receive-search';
-                const oldInput = document.getElementById(inputId);
-                const cursorPos = oldInput ? oldInput.selectionStart : null;
+            // Apenas atualiza os cards, sem tocar nos inputs
+            const side = key === 'giveSearch' ? 'give' : 'receive';
+            updateTrocasGrid(side);
+        }
 
-                const panel = document.querySelector('[data-panel="Trocas"]');
-                if (panel) {
-                    panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
-                    panel.appendChild(renderTrocasPanel());
-                }
+        function updateTrocasGrid(side) {
+            const wrapId = `trocas-${side}-grid-wrap`;
+            const wrap = document.getElementById(wrapId);
+            if (!wrap) return;
+            wrap.innerHTML = '';
 
-                // Restaura foco e posição do cursor
-                const newInput = document.getElementById(inputId);
-                if (newInput) {
-                    newInput.focus();
-                    if (cursorPos !== null) {
-                        newInput.setSelectionRange(cursorPos, cursorPos);
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas' && g !== 'Trocas');
+
+            function sortItems(items) {
+                return [...items].sort((a, b) => {
+                    if (trocasFilter.sort === 'az')   return a.teamName.localeCompare(b.teamName, 'pt');
+                    if (trocasFilter.sort === 'za')   return b.teamName.localeCompare(a.teamName, 'pt');
+                    if (trocasFilter.sort === 'num')  return parseInt(a.num) - parseInt(b.num);
+                    if (trocasFilter.sort === 'dups') return getDups(b.code) - getDups(a.code);
+                    if (trocasFilter.sort === 'grupo') {
+                        const gi = grupos.indexOf(a.groupName) - grupos.indexOf(b.groupName);
+                        return gi !== 0 ? gi : a.teamName.localeCompare(b.teamName, 'pt');
                     }
+                    return 0;
+                });
+            }
+
+            function applySearchLocal(items, query) {
+                if (!query) return items;
+                const q = normalize(query);
+                return items.filter(i =>
+                    normalize(i.teamName).includes(q) ||
+                    normalize(i.playerName || '').includes(q) ||
+                    normalize(i.code).includes(q) ||
+                    normalize(i.groupName || '').includes(q)
+                );
+            }
+
+            if (side === 'give') {
+                const availableToGive = getTrocasIndex();
+                const availableToGiveWithGroup = availableToGive.map(item => {
+                    let groupName = 'Especiais';
+                    Object.entries(GROUPS).forEach(([gn, g]) => {
+                        g.teams.forEach(t => { if (t.code === item.teamCode) groupName = gn; });
+                    });
+                    return { ...item, groupName };
+                });
+
+                let items = availableToGiveWithGroup;
+                if (trocasFilter.giveGrupo === '__selected__') {
+                    items = items.filter(i => data.trades.pending.given.includes(i.code));
+                } else if (trocasFilter.giveGrupo !== 'todos') {
+                    items = items.filter(i => i.groupName === trocasFilter.giveGrupo);
                 }
-            }, 120);
+                items = applySearchLocal(items, trocasFilter.giveSearch);
+                items = sortItems(items);
+
+                if (items.length === 0) {
+                    wrap.innerHTML = `<div class="trades-empty">Nenhum cromo encontrado.</div>`;
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'trades-grid';
+                    items.forEach(item => {
+                        const isSelected = data.trades.pending.given.includes(item.code);
+                        grid.appendChild(makeTrocaCard(item, isSelected, 'selected-given', () => {
+                            if (isSelected) data.trades.pending.given = data.trades.pending.given.filter(c => c !== item.code);
+                            else data.trades.pending.given.push(item.code);
+                            saveData();
+                            refreshTrocasPanel();
+                        }));
+                    });
+                    wrap.appendChild(grid);
+                }
+            } else {
+                const receivableIndex = buildReceivableIndex();
+                let items = receivableIndex;
+                if (trocasFilter.receiveGrupo === '__selected__') {
+                    items = items.filter(i => data.trades.pending.received.includes(i.code));
+                } else if (trocasFilter.receiveGrupo !== 'todos') {
+                    items = items.filter(i => i.groupName === trocasFilter.receiveGrupo);
+                }
+                items = applySearchLocal(items, trocasFilter.receiveSearch);
+                items = sortItems(items);
+
+                if (items.length === 0) {
+                    wrap.innerHTML = `<div class="trades-empty">Nenhum cromo encontrado.</div>`;
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'trades-grid';
+                    items.forEach(item => {
+                        const isSelected = data.trades.pending.received.includes(item.code);
+                        grid.appendChild(makeTrocaCard(item, isSelected, 'selected-received', () => {
+                            if (isSelected) data.trades.pending.received = data.trades.pending.received.filter(c => c !== item.code);
+                            else data.trades.pending.received.push(item.code);
+                            saveData();
+                            refreshTrocasPanel();
+                        }));
+                    });
+                    wrap.appendChild(grid);
+                }
+            }
+        }
+
+        function buildReceivableIndex() {
+            const receivableIndex = [];
+            SPECIAL_CROMOS.forEach(code => {
+                if (!hasAny(code)) {
+                    const playerName = players.especiais ? (players.especiais[code] || '') : '';
+                    receivableIndex.push({ code, type: 'especiais', teamCode: null, num: code, teamName: 'Especiais FIFA', teamFlag: '⭐', playerName, groupName: 'Especiais' });
+                }
+            });
+            Object.entries(GROUPS).forEach(([groupName, group]) => {
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                group.teams.forEach(team => {
+                    CROMO_NUMBERS.forEach(n => {
+                        const code = `${team.code}${n}`;
+                        if (!hasAny(code)) {
+                            const playerName = players.equipas && players.equipas[team.code] ? (players.equipas[team.code][n] || '') : '';
+                            receivableIndex.push({ code, type: 'equipas', teamCode: team.code, num: n, teamName: team.name, teamFlag: team.flag, playerName, groupName });
+                        }
+                    });
+                });
+            });
+            return receivableIndex;
+        }
+
+        function makeTrocaCard(item, isSelected, colorClass, onToggle) {
+            const card = document.createElement('div');
+            card.className = 'trade-item' + (isSelected ? ` ${colorClass}` : '');
+            const dups = getDups(item.code);
+            const contaBadge = item.conta ? `<div style="position:absolute;bottom:4px;left:4px;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:${item.conta===2?'var(--conta2)':'var(--success)'};color:white">C${item.conta}</div>` : '';
+            card.innerHTML = `
+                <div class="trade-item-flag">${item.teamFlag}</div>
+                <div class="trade-item-team">${item.teamName}</div>
+                <div class="trade-item-code">${item.num}</div>
+                ${item.playerName ? `<div class="trade-item-player">${item.playerName}</div>` : ''}
+                ${dups > 0 ? `<div class="trade-checkmark" style="background:var(--accent);color:white;font-size:9px">×${dups}</div>` : ''}
+                ${isSelected ? '<div class="trade-checkmark" style="top:24px">✓</div>' : ''}
+                ${contaBadge}
+            `;
+            card.onclick = onToggle;
+            return card;
+        }
+
+        function refreshTrocasPanel() {
+            const panel = document.querySelector('[data-panel="Trocas"]');
+            if (panel) {
+                panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
+                panel.appendChild(renderTrocasPanel());
+            }
         }
 
         function getTrocasIndex() {
@@ -2107,65 +2234,18 @@
             const wrap = document.createElement('div');
             ensureDataIntegrity();
 
-            const availableToGive = getTrocasIndex();
-
-            // Main container
             const container = document.createElement('div');
-
-            // Trade selection section
             const selectionDiv = document.createElement('div');
             selectionDiv.className = 'trades-container';
 
             const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== 'Equipas' && g !== 'Trocas');
+            const selectedGiveCount = data.trades.pending.given.length;
+            const selectedReceiveCount = data.trades.pending.received.length;
+            const hasAnyDups = getTrocasIndex().length > 0;
 
-            function sortItems(items) {
-                return [...items].sort((a, b) => {
-                    if (trocasFilter.sort === 'az')   return a.teamName.localeCompare(b.teamName, 'pt');
-                    if (trocasFilter.sort === 'za')   return b.teamName.localeCompare(a.teamName, 'pt');
-                    if (trocasFilter.sort === 'num')  return parseInt(a.num) - parseInt(b.num);
-                    if (trocasFilter.sort === 'dups') return getDups(b.code) - getDups(a.code);
-                    if (trocasFilter.sort === 'grupo') {
-                        const gi = grupos.indexOf(a.groupName) - grupos.indexOf(b.groupName);
-                        return gi !== 0 ? gi : a.teamName.localeCompare(b.teamName, 'pt');
-                    }
-                    return 0;
-                });
-            }
-
-            function applySearch(items, query) {
-                if (!query) return items;
-                const q = normalize(query);
-                return items.filter(i =>
-                    normalize(i.teamName).includes(q) ||
-                    normalize(i.playerName || '').includes(q) ||
-                    normalize(i.code).includes(q) ||
-                    normalize(i.groupName || '').includes(q)
-                );
-            }
-
-            function makeTradeCard(item, isSelected, colorClass, onToggle) {
-                const card = document.createElement('div');
-                card.className = 'trade-item' + (isSelected ? ` ${colorClass}` : '');
-                const dups = getDups(item.code);
-                const contaBadge = item.conta ? `<div style="position:absolute;bottom:4px;left:4px;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;background:${item.conta===2?'var(--conta2)':'var(--success)'};color:white">C${item.conta}</div>` : '';
-                card.innerHTML = `
-                    <div class="trade-item-flag">${item.teamFlag}</div>
-                    <div class="trade-item-team">${item.teamName}</div>
-                    <div class="trade-item-code">${item.num}</div>
-                    ${item.playerName ? `<div class="trade-item-player">${item.playerName}</div>` : ''}
-                    ${dups > 0 ? `<div class="trade-checkmark" style="background:var(--accent);color:white;font-size:9px">×${dups}</div>` : ''}
-                    ${isSelected ? '<div class="trade-checkmark" style="top:24px">✓</div>' : ''}
-                    ${contaBadge}
-                `;
-                card.onclick = onToggle;
-                return card;
-            }
-
-            // Left: Available to give
+            // Left section
             const leftSection = document.createElement('div');
             leftSection.className = 'trades-section';
-
-            const selectedGiveCount = data.trades.pending.given.length;
             leftSection.innerHTML = `
                 <div class="trades-section-title">
                     Disponível para dar
@@ -2186,86 +2266,12 @@
                     </select>
                     ${selectedGiveCount > 0 ? `<button class="filter-pill ${trocasFilter.giveGrupo==='__selected__'?'active':''}" onclick="setTrocasFilter('giveGrupo','${trocasFilter.giveGrupo==='__selected__'?'todos':'__selected__'}')" style="font-size:11px;padding:4px 10px">Só selecionados</button>` : ''}
                 </div>
+                <div id="trocas-give-grid-wrap">${hasAnyDups ? '' : '<div class="trades-empty">Não tens duplicados para dar</div>'}</div>
             `;
 
-            // Build give items with group info
-            const availableToGiveWithGroup = availableToGive.map(item => {
-                let groupName = 'Especiais';
-                Object.entries(GROUPS).forEach(([gn, g]) => {
-                    g.teams.forEach(t => { if (t.code === item.teamCode) groupName = gn; });
-                });
-                return { ...item, groupName };
-            });
-
-            let filteredGive = availableToGiveWithGroup;
-            if (trocasFilter.giveGrupo === '__selected__') {
-                filteredGive = filteredGive.filter(i => data.trades.pending.given.includes(i.code));
-            } else if (trocasFilter.giveGrupo !== 'todos') {
-                filteredGive = filteredGive.filter(i => i.groupName === trocasFilter.giveGrupo);
-            }
-            filteredGive = applySearch(filteredGive, trocasFilter.giveSearch);
-            filteredGive = sortItems(filteredGive);
-
-            if (availableToGive.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'trades-empty';
-                empty.textContent = 'Não tens duplicados em Conta 1';
-                leftSection.appendChild(empty);
-            } else if (filteredGive.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'trades-empty';
-                empty.textContent = 'Nenhum cromo encontrado com este filtro.';
-                leftSection.appendChild(empty);
-            } else {
-                const grid = document.createElement('div');
-                grid.className = 'trades-grid';
-                filteredGive.forEach(item => {
-                    const isSelected = data.trades.pending.given.includes(item.code);
-                    grid.appendChild(makeTradeCard(item, isSelected, 'selected-given', () => {
-                        if (isSelected) {
-                            data.trades.pending.given = data.trades.pending.given.filter(c => c !== item.code);
-                        } else {
-                            data.trades.pending.given.push(item.code);
-                        }
-                        saveData();
-                        const panel = document.querySelector('[data-panel="Trocas"]');
-                        if (panel) {
-                            panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
-                            panel.appendChild(renderTrocasPanel());
-                        }
-                    }));
-                });
-                leftSection.appendChild(grid);
-            }
-
-            selectionDiv.appendChild(leftSection);
-
-            // Right: To receive
+            // Right section
             const rightSection = document.createElement('div');
             rightSection.className = 'trades-section';
-
-            // Get all stickers not in Conta 1 or Conta 2 to offer as receiving options
-            const receivableIndex = [];
-            SPECIAL_CROMOS.forEach(code => {
-                if (!hasAny(code)) {
-                    const playerName = players.especiais ? (players.especiais[code] || '') : '';
-                    receivableIndex.push({ code, type: 'especiais', teamCode: null, num: code, teamName: 'Especiais FIFA', teamFlag: '⭐', playerName, groupName: 'Especiais' });
-                }
-            });
-            Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === 'Equipas' || groupName === 'Trocas') return;
-                group.teams.forEach(team => {
-                    CROMO_NUMBERS.forEach(n => {
-                        const code = `${team.code}${n}`;
-                        if (!hasAny(code)) {
-                            const playerName = players.equipas && players.equipas[team.code] ? (players.equipas[team.code][n] || '') : '';
-                            receivableIndex.push({ code, type: 'equipas', teamCode: team.code, num: n, teamName: team.name, teamFlag: team.flag, playerName, groupName });
-                        }
-                    });
-                });
-            });
-
-            const selectedReceiveCount = data.trades.pending.received.length;
             rightSection.innerHTML = `
                 <div class="trades-section-title">
                     Para receber (Conta 2)
@@ -2285,51 +2291,18 @@
                     </select>
                     ${selectedReceiveCount > 0 ? `<button class="filter-pill ${trocasFilter.receiveGrupo==='__selected__'?'active':''}" onclick="setTrocasFilter('receiveGrupo','${trocasFilter.receiveGrupo==='__selected__'?'todos':'__selected__'}')" style="font-size:11px;padding:4px 10px;${trocasFilter.receiveGrupo==='__selected__'?'':'background:var(--bg);color:var(--text-muted);border-color:var(--border)'}">Só selecionados</button>` : ''}
                 </div>
+                <div id="trocas-receive-grid-wrap"></div>
             `;
 
-            let filteredReceive = receivableIndex;
-            if (trocasFilter.receiveGrupo === '__selected__') {
-                filteredReceive = filteredReceive.filter(i => data.trades.pending.received.includes(i.code));
-            } else if (trocasFilter.receiveGrupo !== 'todos') {
-                filteredReceive = filteredReceive.filter(i => i.groupName === trocasFilter.receiveGrupo);
-            }
-            filteredReceive = applySearch(filteredReceive, trocasFilter.receiveSearch);
-            filteredReceive = sortItems(filteredReceive);
-
-            if (receivableIndex.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'trades-empty';
-                empty.textContent = 'Já tens todos os cromos!';
-                rightSection.appendChild(empty);
-            } else if (filteredReceive.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'trades-empty';
-                empty.textContent = 'Nenhum cromo encontrado com este filtro.';
-                rightSection.appendChild(empty);
-            } else {
-                const grid = document.createElement('div');
-                grid.className = 'trades-grid';
-                filteredReceive.forEach(item => {
-                    const isSelected = data.trades.pending.received.includes(item.code);
-                    grid.appendChild(makeTradeCard(item, isSelected, 'selected-received', () => {
-                        if (isSelected) {
-                            data.trades.pending.received = data.trades.pending.received.filter(c => c !== item.code);
-                        } else {
-                            data.trades.pending.received.push(item.code);
-                        }
-                        saveData();
-                        const panel = document.querySelector('[data-panel="Trocas"]');
-                        if (panel) {
-                            panel.innerHTML = `<div class="panel-header"><div class="panel-title">🔄 Trocas</div></div>`;
-                            panel.appendChild(renderTrocasPanel());
-                        }
-                    }));
-                });
-                rightSection.appendChild(grid);
-            }
-
+            selectionDiv.appendChild(leftSection);
             selectionDiv.appendChild(rightSection);
             container.appendChild(selectionDiv);
+
+            // Populate grids after DOM is ready
+            requestAnimationFrame(() => {
+                if (hasAnyDups) updateTrocasGrid('give');
+                updateTrocasGrid('receive');
+            });
 
             // Copy duplicates button
             const copyDiv = document.createElement('div');
