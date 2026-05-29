@@ -1029,6 +1029,35 @@
             font-size: 11px;
             font-weight: 700;
         }
+        .chip-give[data-tip], .chip-receive[data-tip] { position: relative; cursor: help; }
+        .chip-give[data-tip]:hover::after, .chip-receive[data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 7px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text);
+            color: white;
+            padding: 7px 11px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            z-index: 200;
+            box-shadow: var(--shadow-lg);
+            pointer-events: none;
+        }
+        .chip-give[data-tip]:hover::before, .chip-receive[data-tip]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--text);
+            z-index: 200;
+            pointer-events: none;
+        }
         .trades-saved-card-actions { display: flex; gap: 8px; flex-shrink: 0; align-self: center; }
 
         /* buttons */
@@ -2297,6 +2326,32 @@
             }
         }
 
+        function getCromoInfo(code) {
+            if (SPECIAL_CROMOS.includes(code)) {
+                return { teamCode: 'FIFA', teamName: 'Especiais FIFA', teamFlag: '⭐', num: code, playerName: players.especiais?.[code] || '' };
+            }
+            let result = null;
+            Object.entries(GROUPS).forEach(([gn, g]) => {
+                if (gn === 'Insights' || gn === 'Especiais' || gn === 'Equipas' || gn === 'Trocas') return;
+                g.teams.forEach(team => {
+                    CROMO_NUMBERS.forEach(n => {
+                        if (`${team.code}${n}` === code) {
+                            result = { teamCode: team.code, teamName: team.name, teamFlag: team.flag, num: n, playerName: players.equipas?.[team.code]?.[n] || '' };
+                        }
+                    });
+                });
+            });
+            return result;
+        }
+
+        function cromoTip(code) {
+            const info = getCromoInfo(code);
+            if (!info) return code;
+            const parts = [`${info.teamFlag} ${info.teamName}`, `Nº ${info.num}`];
+            if (info.playerName) parts.push(info.playerName);
+            return parts.join(' · ').replace(/"/g, '&quot;');
+        }
+
         function buildReceivableIndex() {
             const receivableIndex = [];
             SPECIAL_CROMOS.forEach(code => {
@@ -2642,8 +2697,8 @@
                     const date = new Date(trade.date);
                     const dateStr = date.toLocaleDateString('pt-PT') + ' ' + date.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
 
-                    const giveChips = trade.given.map(c => `<span class="chip-give">↑ ${c}</span>`).join('');
-                    const receiveChips = trade.received.map(c => `<span class="chip-receive">↓ ${c}</span>`).join('');
+                    const giveChips = trade.given.map(c => `<span class="chip-give" data-tip="${cromoTip(c)}">↑ ${c}</span>`).join('');
+                    const receiveChips = trade.received.map(c => `<span class="chip-receive" data-tip="${cromoTip(c)}">↓ ${c}</span>`).join('');
 
                     const body = document.createElement('div');
                     body.className = 'trades-saved-card-body';
@@ -2717,8 +2772,8 @@
                     const date = new Date(trade.completedDate || trade.date);
                     const dateStr = date.toLocaleDateString('pt-PT') + ' ' + date.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
 
-                    const giveChips = trade.given.map(c => `<span class="chip-give">↑ ${c}</span>`).join('');
-                    const receiveChips = trade.received.map(c => `<span class="chip-receive">↓ ${c}</span>`).join('');
+                    const giveChips = trade.given.map(c => `<span class="chip-give" data-tip="${cromoTip(c)}">↑ ${c}</span>`).join('');
+                    const receiveChips = trade.received.map(c => `<span class="chip-receive" data-tip="${cromoTip(c)}">↓ ${c}</span>`).join('');
 
                     record.innerHTML = `
                         <div class="trade-record-header">
