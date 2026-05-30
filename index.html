@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Álbum de Cromos — Copa do Mundo 2026</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
     <style>
         :root {
             --primary: #1e3a8a;
@@ -1568,7 +1569,11 @@
             if (!data.trades || typeof data.trades !== 'object') {
                 data.trades = { pending: { given: [], received: [] }, history: [] };
             }
-            if (!data.trades.pending) data.trades.pending = { given: [], received: [] };
+            if (!data.trades.pending || typeof data.trades.pending !== 'object') {
+                data.trades.pending = { given: [], received: [] };
+            }
+            if (!Array.isArray(data.trades.pending.given)) data.trades.pending.given = [];
+            if (!Array.isArray(data.trades.pending.received)) data.trades.pending.received = [];
             if (!Array.isArray(data.trades.saved)) data.trades.saved = [];
             if (!Array.isArray(data.trades.history)) data.trades.history = [];
         }
