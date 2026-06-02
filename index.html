@@ -8,58 +8,77 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app" id="app">
-        <div class="header">
+    <div class="app">
+        <!-- HEADER -->
+        <header class="header">
             <div class="header-top">
-                <div>
-                    <h1>Álbum de Cromos <span class="subtitle">Copa do Mundo 2026</span></h1>
-                </div>
-                <div class="actions">
-                    <button class="btn-primary" id="btn-limpar">🗑️ Limpar Tudo</button>
-                    <button class="btn-ghost" id="btn-exportar-json">📥 Exportar</button>
-                </div>
+                <h1>
+                    🏆 Álbum de Cromos
+                    <span class="subtitle">Copa do Mundo FIFA 2026</span>
+                </h1>
             </div>
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="cromos">Cromos</button>
-                <button class="tab-btn" data-tab="insights">Insights</button>
-                <button class="tab-btn" data-tab="trocas">Trocas</button>
-                <button class="tab-btn" data-tab="equipas">Equipas</button>
-            </div>
-        </div>
 
-        <!-- Tabs Content -->
-        <div class="tabs-content">
-            <!-- Cromos Tab -->
-            <div id="tab-cromos" class="tab-pane active">
-                <div class="search-section">
-                    <input type="text" id="search-input" placeholder="🔍 Pesquisa por jogador, equipa ou grupo...">
-                    <div class="filter-buttons">
-                        <button class="filter-btn active" data-filter="all">Tudo</button>
-                        <button class="filter-btn" data-filter="tenho">Tenho</button>
-                        <button class="filter-btn" data-filter="duplicado">Duplicado</button>
-                        <button class="filter-btn" data-filter="falta">Em Falta</button>
+            <div class="progress-section">
+                <div class="progress-info">
+                    <div>Progresso da Coleção</div>
+                    <div><strong id="progressPercent">0%</strong></div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="conta1Count">0</div>
+                        <div class="stat-label">Conta 1</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="conta2Count">0</div>
+                        <div class="stat-label">Conta 2</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="missingCount">0</div>
+                        <div class="stat-label">Faltam</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="duplicateCount">0</div>
+                        <div class="stat-label">Duplicados</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="totalCount">0</div>
+                        <div class="stat-label">Total</div>
                     </div>
                 </div>
-                <div id="cromos-container" class="cromos-grid"></div>
-                <div id="search-container" class="search-results"></div>
             </div>
+        </header>
 
-            <!-- Insights Tab -->
-            <div id="tab-insights" class="tab-pane">
-                <div id="insights-container"></div>
-            </div>
-
-            <!-- Trocas Tab -->
-            <div id="tab-trocas" class="tab-pane">
-                <div id="trocas-container"></div>
-            </div>
-
-            <!-- Equipas Tab -->
-            <div id="tab-equipas" class="tab-pane">
-                <div id="equipas-container"></div>
-            </div>
+        <!-- LEGEND -->
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot"></div>Faltam</div>
+            <div class="legend-item"><div class="legend-dot owned"></div>Conta 1</div>
+            <div class="legend-item"><div class="legend-dot conta2"></div>Conta 2</div>
+            <div class="legend-item">🟠 Badge laranja = duplicados para trocar</div>
+            <div class="legend-item">💡 Clica para ciclar · +/− para duplicados</div>
         </div>
+
+        <!-- SEARCH -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar por jogador, equipa ou grupo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button class="search-clear" id="searchClear" style="display:none" title="Limpar pesquisa">✕</button>
+        </div>
+
+        <!-- SEARCH RESULTS -->
+        <div id="searchPanel" class="search-panel" style="display:none">
+            <div id="searchResults"></div>
+        </div>
+
+        <!-- TABS -->
+        <nav class="tabs" id="tabs"></nav>
+
+        <!-- CONTENT -->
+        <main id="content"></main>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script src="app.js"></script>
 </body>
