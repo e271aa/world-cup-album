@@ -1,3 +1,22 @@
+        // ============ FIREBASE / AUTH ============
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQis2_U6ZXFu8DSvGCpcS7YrR_FS8MJ8k",
+            authDomain: "world-cup-album.firebaseapp.com",
+            databaseURL: "https://world-cup-album-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "world-cup-album",
+            storageBucket: "world-cup-album.firebasestorage.app",
+            messagingSenderId: "170397140451",
+            appId: "1:170397140451:web:29b63e09f1f7782a810cd6"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Devolve um token de ID fresco do utilizador autenticado (ou null).
+        async function getIdToken() {
+            const user = auth.currentUser;
+            return user ? await user.getIdToken() : null;
+        }
+
         // ============ DATA ============
         const FIREBASE_DB = 'https://world-cup-album-default-rtdb.europe-west1.firebasedatabase.app';
 
@@ -140,15 +159,6 @@
         let currentTab = 'Insights';
         let saveTimeout = null;
 
-        // ============ INIT ============
-        async function init() {
-            await loadPlayers();
-            await loadData();
-            renderTabs();
-            renderContent();
-            updateStats();
-        }
-
         async function loadPlayers() {
             try {
                 const res = await fetch('players.json', { cache: 'no-store' });
@@ -160,21 +170,27 @@
             }
         }
 
+        // Devolve true se autorizado e carregado; false se o acesso for negado.
         async function loadData() {
             try {
-                const res = await fetch(`${FIREBASE_DB}/data.json`, { cache: 'no-store' });
+                const token = await getIdToken();
+                const res = await fetch(`${FIREBASE_DB}/data.json?auth=${token}`, { cache: 'no-store' });
+                if (res.status === 401 || res.status === 403) {
+                    return false; // utilizador não autorizado pelas regras do Firebase
+                }
                 if (res.ok) {
                     const remote = await res.json();
                     if (remote && Array.isArray(remote.tenho)) {
                         data = remote;
                         ensureDataIntegrity();
-                        return;
+                        return true;
                     }
                 }
             } catch (e) {
                 console.error('Erro ao ler dados:', e);
             }
-            createFreshData();
+            createFreshData(); // autorizado mas sem dados ainda
+            return true;
         }
 
         function createFreshData() {
@@ -253,7 +269,8 @@
                 try {
                     ensureDataIntegrity();
                     const body = JSON.stringify(data);
-                    const res = await fetch(`${FIREBASE_DB}/data.json`, {
+                    const token = await getIdToken();
+                    const res = await fetch(`${FIREBASE_DB}/data.json?auth=${token}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: body
@@ -1560,6 +1577,71 @@
             });
         }
 
-        // ============ START ============
-        init();
-        initSearch();
+        // ============ START (com autenticação) ============
+        const appRoot = document.querySelector('.app');
+        const authGate = document.getElementById('authGate');
+        const loginBtn = document.getElementById('loginBtn');
+        const authMsg = document.getElementById('authMsg');
+        let appStarted = false;
+
+        function showGate(message) {
+            if (appRoot) appRoot.style.display = 'none';
+            authGate.style.display = 'flex';
+            authMsg.innerHTML = message || '';
+        }
+
+        function hideGate() {
+            authGate.style.display = 'none';
+            if (appRoot) appRoot.style.display = '';
+        }
+
+        // Traduz os códigos de erro mais comuns do Firebase para português.
+        function mensagemErroAuth(code) {
+            const mapa = {
+                'auth/popup-blocked': 'O browser bloqueou a janela de login. Permite pop-ups e tenta novamente.',
+                'auth/popup-closed-by-user': 'Login cancelado.',
+                'auth/cancelled-popup-request': 'Login cancelado.',
+                'auth/network-request-failed': 'Sem ligação à internet. Verifica a tua rede.',
+                'auth/unauthorized-domain': 'Este domínio não está autorizado nas definições do Firebase.'
+            };
+            return mapa[code] || 'Não foi possível entrar. Tenta novamente.';
+        }
+
+        loginBtn.addEventListener('click', async () => {
+            authMsg.textContent = '';
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                await auth.signInWithPopup(provider);
+            } catch (e) {
+                authMsg.textContent = mensagemErroAuth(e.code);
+            }
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                appStarted = false;
+                loginBtn.style.display = '';
+                showGate('');
+                return;
+            }
+            console.log('Sessão iniciada — UID:', user.uid, '·', user.email);
+            const authorized = await loadData();
+            if (!authorized) {
+                loginBtn.style.display = 'none';
+                showGate(
+                    `A conta <strong>${user.email}</strong> não tem acesso a este álbum.` +
+                    `<br><button id="logoutBtn" class="auth-btn">Sair</button>`
+                );
+                document.getElementById('logoutBtn')?.addEventListener('click', () => auth.signOut());
+                return;
+            }
+            hideGate();
+            if (!appStarted) {
+                appStarted = true;
+                await loadPlayers();
+                renderTabs();
+                renderContent();
+                updateStats();
+                initSearch();
+            }
+        });

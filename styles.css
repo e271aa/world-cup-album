@@ -1294,3 +1294,47 @@
             .cromo-num { font-size: 20px; }
             .header h1 { font-size: 20px; }
         }
+
+/* ===== AUTH GATE ===== */
+.auth-gate {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    padding: 20px;
+    z-index: 1000;
+}
+
+.auth-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 40px 32px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    max-width: 360px;
+    width: 100%;
+}
+
+.auth-logo { font-size: 56px; line-height: 1; margin-bottom: 12px; }
+
+.auth-card h1 { font-size: 24px; font-weight: 700; color: var(--text); }
+
+.auth-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+.auth-btn {
+    background: var(--primary);
+    color: #fff;
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.auth-btn:hover { background: var(--primary-light); }
+
+.auth-msg { margin-top: 16px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+.auth-msg code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
