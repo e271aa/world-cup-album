@@ -23,12 +23,11 @@ Aplicação web responsiva para rastreamento de colecção de adesivos da Copa d
 
 ```
 world-cup-2026-album/
-├── index.html          # Estrutura HTML (9 linhas)
-├── styles.css          # Estilos e temas (1370 linhas)
-├── app.js              # Lógica principal e Firebase (1565 linhas)
-├── players.json        # Base de dados de jogadores (14 KB)
-├── data.json           # Dados iniciais
-├── server.py           # Servidor Python opcional (desenvolvimento local)
+├── index.html          # Estrutura HTML
+├── styles.css          # Estilos e temas
+├── app.js              # Lógica principal e Firebase
+├── players.json        # Base de dados de jogadores
+├── CNAME               # Domínio personalizado (GitHub Pages)
 └── README.md           # Este ficheiro
 ```
 
@@ -56,14 +55,16 @@ Visita: https://e271aa.github.io/world-cup-2026-album
 
 A aplicação funciona directamente no browser.
 
-### Localmente (com Python)
+### Localmente
+
+A aplicação é totalmente estática. Para a correr localmente, basta servir os ficheiros com qualquer servidor HTTP simples:
 
 ```bash
-# Executar servidor local
-python server.py
+# A partir da pasta do projecto
+python3 -m http.server 8000
 
 # Abrir em browser
-# http://localhost:8765
+# http://localhost:8000
 ```
 
 ## Configuração do Firebase
