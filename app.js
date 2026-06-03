@@ -561,14 +561,39 @@
                 dupHtml += `<div class="insight-empty">Não tens duplicados</div>`;
             } else {
                 dupHtml += `<div class="insight-big">${i.dupTotal} cromos</div>`;
-                dupHtml += `<div class="insight-list">` + i.dupList.map(([code, n]) => `
-                    <div class="insight-item">
-                        <div class="insight-item-head">
-                            <strong>${code}</strong>
-                            <span class="badge">+${n}</span>
+                // Agrupar duplicados por equipa e mostrar o nome do jogador
+                const dupGrupos = {};
+                i.dupList.forEach(([code, n]) => {
+                    const info = getCromoInfo(code);
+                    if (!info) return;
+                    if (!dupGrupos[info.teamCode]) {
+                        dupGrupos[info.teamCode] = { flag: info.teamFlag, name: info.teamName, items: [] };
+                    }
+                    dupGrupos[info.teamCode].items.push({ num: info.num, playerName: info.playerName, n });
+                });
+                const equipasOrdenadas = Object.values(dupGrupos).sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+                dupHtml += `<div class="dup-groups">` + equipasOrdenadas.map(g => {
+                    const total = g.items.reduce((s, it) => s + it.n, 0);
+                    const linhas = g.items
+                        .sort((a, b) => (parseInt(a.num) || 0) - (parseInt(b.num) || 0))
+                        .map(it => `
+                            <div class="dup-row">
+                                <span class="dup-num">${it.num}</span>
+                                <span class="dup-name">${it.playerName || '—'}</span>
+                                <span class="dup-x">×${it.n}</span>
+                            </div>
+                        `).join('');
+                    return `
+                        <div class="dup-group">
+                            <div class="dup-group-head">
+                                <span class="dup-flag">${g.flag}</span>
+                                <span class="dup-team">${g.name}</span>
+                                <span class="dup-group-count">${total}</span>
+                            </div>
+                            <div class="dup-group-items">${linhas}</div>
                         </div>
-                    </div>
-                `).join('') + `</div>`;
+                    `;
+                }).join('') + `</div>`;
             }
             dup.innerHTML = dupHtml;
             wrap.appendChild(dup);
@@ -1654,6 +1679,9 @@
                 authMsg.textContent = mensagemErroAuth(e.code);
             }
         });
+
+        // Botão de logout no cabeçalho
+        document.getElementById('headerLogoutBtn')?.addEventListener('click', () => auth.signOut());
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {

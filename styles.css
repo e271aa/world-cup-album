@@ -575,6 +575,57 @@
             gap: 10px;
         }
 
+        /* ===== DUPLICADOS AGRUPADOS POR EQUIPA ===== */
+        .dup-groups { display: flex; flex-direction: column; gap: 10px; }
+
+        .dup-group {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .dup-group-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 13.5px;
+        }
+        .dup-flag { font-size: 18px; line-height: 1; }
+        .dup-team { flex: 1; }
+        .dup-group-count {
+            background: var(--accent);
+            color: white;
+            padding: 1px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .dup-group-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 2px 14px;
+        }
+        .dup-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12.5px;
+            padding: 2px 0;
+        }
+        .dup-num { font-weight: 800; min-width: 22px; color: var(--text-muted); }
+        .dup-name {
+            flex: 1;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dup-x { font-weight: 700; color: #b45309; }
+
         .insight-item {
             background: var(--surface);
             border-radius: 8px;
