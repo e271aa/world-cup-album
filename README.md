@@ -24,9 +24,12 @@ Aplicação web responsiva para rastreamento de colecção de adesivos da Copa d
 ```
 world-cup-2026-album/
 ├── index.html          # Estrutura HTML
-├── styles.css          # Estilos e temas
-├── app.js              # Lógica principal e Firebase
-├── players.json        # Base de dados de jogadores
+├── css/
+│   └── styles.css      # Estilos e temas
+├── js/
+│   └── app.js          # Lógica principal, autenticação e Firebase
+├── data/
+│   └── players.json    # Base de dados de jogadores
 ├── CNAME               # Domínio personalizado (GitHub Pages)
 └── README.md           # Este ficheiro
 ```

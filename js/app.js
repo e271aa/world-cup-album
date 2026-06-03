@@ -161,7 +161,7 @@
 
         async function loadPlayers() {
             try {
-                const res = await fetch('players.json', { cache: 'no-store' });
+                const res = await fetch('data/players.json', { cache: 'no-store' });
                 if (res.ok) {
                     players = await res.json();
                 }
