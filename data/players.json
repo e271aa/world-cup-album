@@ -10,6 +10,20 @@
     "FCW7": "Host Country Emblem - MEX",
     "FCW8": "Host Country Emblem - USA"
   },
+  "allthefeels": {
+    "CC1": "Lamine Yamal",
+    "CC2": "Joshua Kimmich",
+    "CC3": "Eduardo Camavinga",
+    "CC4": "Joško Gvardiol",
+    "CC5": "Federico Valverde",
+    "CC6": "Virgil van Dijk",
+    "CC7": "Alphonso Davies",
+    "CC8": "Raúl Jiménez",
+    "CC9": "William Saliba",
+    "CC10": "Lautaro Martínez",
+    "CC11": "Harry Kane",
+    "CC12": "Antonee Robinson"
+  },
   "equipas": {
     "MEX": {"0": "Mexico Logo", "1": "Luis Malagón", "2": "Johan Vásquez", "3": "César Montes", "4": "Jesús Gallardo", "5": "Israel Reyes", "6": "Edson Álvarez", "7": "Marcel Ruiz", "8": "Hirving Lozano", "9": "Raúl Jiménez", "10": "Alexis Vega", "11": "Roberto Alvarado"},
     "RSA": {"0": "South Africa Logo", "1": "Ronwen Williams", "2": "Aubrey Modiba", "3": "Mbekezeli Mbokazi", "4": "Siyabonga Ngezana", "5": "Khuliso Mudau", "6": "Teboho Mokoena", "7": "Yaya Sithole", "8": "Bathusi Aubaas", "9": "Sipho Mbule", "10": "Lyle Foster", "11": "Oswin Appollis"},
