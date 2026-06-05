@@ -1713,11 +1713,15 @@
         }
 
         loginBtn.addEventListener('click', async () => {
-            authMsg.textContent = '';
+            authMsg.textContent = 'A tentar fazer login...';
+            console.log('🔐 Iniciando login com Google...');
             const provider = new firebase.auth.GoogleAuthProvider();
             try {
-                await auth.signInWithPopup(provider);
+                console.log('📱 Abrindo popup de login...');
+                const result = await auth.signInWithPopup(provider);
+                console.log('✅ Login bem-sucedido! UID:', result.user.uid);
             } catch (e) {
+                console.error('❌ Erro de login:', e.code, e.message);
                 authMsg.textContent = mensagemErroAuth(e.code);
             }
         });
