@@ -441,7 +441,7 @@
             });
 
             const milestones = [25, 50, 75, 90, 100];
-            const currentPct = total > 0 ? (owned / total) * 100 : 0;
+            const currentPct = total > 0 ? Math.round((owned / total) * 100) : 0;
             const nextMs = milestones.find(m => m > currentPct);
             const proximoMarco = nextMs ? {
                 milestone: nextMs,
