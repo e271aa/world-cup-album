@@ -22,6 +22,7 @@
 
         const SPECIAL_CROMOS = ['00', 'FCW1', 'FCW2', 'FCW3', 'FCW4', 'FCW5', 'FCW6', 'FCW7', 'FCW8'];
         const ALLTHEFEELS_CROMOS = ['CC1', 'CC2', 'CC3', 'CC4', 'CC5', 'CC6', 'CC7', 'CC8', 'CC9', 'CC10', 'CC11', 'CC12'];
+        const TROPHY_TOUR_CROMOS = ['COKE', 'ALG', 'ARG', 'AUT', 'BAN', 'BRA', 'CAN', 'COL', 'ECU', 'EGY', 'FRA', 'GUA', 'HON', 'IND', 'IDN', 'CIV', 'JPN', 'KAZ', 'MAS', 'MEX', 'MAR', 'POR', 'KSA', 'RSA', 'KOR', 'ESP', 'THA', 'TUR', 'URU', 'USA', 'UZB'];
         const CROMO_NUMBERS = ['0','1','2','3','4','5','6','7','8','9','10','11'];
 
         const GROUPS = {
@@ -48,6 +49,11 @@
             '#ALLTHEFEELS': {
                 key: 'allthefeels',
                 icon: '❤️',
+                teams: []
+            },
+            'Trophy Tour': {
+                key: 'trophytour',
+                icon: '🏆',
                 teams: []
             },
             'Grupo A': {
@@ -222,7 +228,7 @@
 
         // Helpers
         function cromoCode(type, teamCode, num) {
-            if (type === 'especiais' || type === 'allthefeels') return num;
+            if (type === 'especiais' || type === 'allthefeels' || type === 'trophytour') return num;
             return `${teamCode}${num}`;
         }
 
@@ -310,6 +316,7 @@
                     let displayName = name;
                     if (name === 'Especiais') displayName = '⭐ Especiais';
                     else if (name === '#ALLTHEFEELS') displayName = '❤️ #ALLTHEFEELS';
+                    else if (name === 'Trophy Tour') displayName = '🏆 Trophy Tour';
                     btn.innerHTML = `${displayName}<span class="tab-count">${stats.owned}/${stats.total}</span>`;
                 }
 
@@ -364,6 +371,7 @@
                     let titleText = name;
                     if (name === 'Especiais') titleText = '⭐ Cromos Especiais';
                     else if (name === '#ALLTHEFEELS') titleText = '❤️ #ALLTHEFEELS';
+                    else if (name === 'Trophy Tour') titleText = '🏆 Trophy Tour';
                     panel.innerHTML = `
                         <div class="panel-header">
                             <div class="panel-title">${titleText}</div>
@@ -385,6 +393,13 @@
                             grid.appendChild(createCromo('allthefeels', null, code));
                         });
                         panel.appendChild(grid);
+                    } else if (name === 'Trophy Tour') {
+                        const grid = document.createElement('div');
+                        grid.className = 'cromos-grid';
+                        TROPHY_TOUR_CROMOS.forEach(code => {
+                            grid.appendChild(createCromo('trophytour', null, code));
+                        });
+                        panel.appendChild(grid);
                     } else {
                         group.teams.forEach(team => {
                             panel.appendChild(createTeamSection(team));
@@ -399,7 +414,7 @@
         function calculateInsights() {
             const teamStats = [];
             Object.entries(GROUPS).forEach(([name, group]) => {
-                if (name === 'Insights' || name === 'Especiais' || name === '#ALLTHEFEELS' || name === 'Equipas' || name === 'Trocas') return;
+                if (name === 'Insights' || name === 'Especiais' || name === '#ALLTHEFEELS' || name === 'Trophy Tour' || name === 'Equipas' || name === 'Trocas') return;
                 group.teams.forEach(team => {
                     const ownedNums = CROMO_NUMBERS.filter(n => hasAny(`${team.code}${n}`));
                     teamStats.push({ team, groupName: name, owned: ownedNums.length, ownedNums });
@@ -409,6 +424,7 @@
             let total = 0, owned = 0;
             SPECIAL_CROMOS.forEach(c => { total++; if (hasAny(c)) owned++; });
             ALLTHEFEELS_CROMOS.forEach(c => { total++; if (hasAny(c)) owned++; });
+            TROPHY_TOUR_CROMOS.forEach(c => { total++; if (hasAny(c)) owned++; });
             Object.values(GROUPS).forEach(group => {
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
@@ -432,7 +448,7 @@
             const gruposCompletos = [];
             const gruposProgresso = [];
             Object.entries(GROUPS).forEach(([name]) => {
-                if (name === 'Insights' || name === 'Especiais' || name === '#ALLTHEFEELS' || name === 'Equipas' || name === 'Trocas') return;
+                if (name === 'Insights' || name === 'Especiais' || name === '#ALLTHEFEELS' || name === 'Trophy Tour' || name === 'Equipas' || name === 'Trocas') return;
                 const s = getGroupStats(name);
                 gruposProgresso.push({ name, owned: s.owned, total: s.total, pct: Math.round((s.owned / s.total) * 100) });
                 if (s.owned === s.total) gruposCompletos.push(name);
@@ -653,6 +669,7 @@
             let displayCode = '';
             if (type === 'especiais') displayCode = 'FIFA';
             else if (type === 'allthefeels') displayCode = '#FEELS';
+            else if (type === 'trophytour') displayCode = '🏆';
             else displayCode = `${teamCode}${num}`;
 
             const c1 = hasCromo(code);
@@ -664,6 +681,8 @@
                 playerName = players.especiais ? (players.especiais[num] || '') : '';
             } else if (type === 'allthefeels') {
                 playerName = players.allthefeels ? (players.allthefeels[num] || '') : '';
+            } else if (type === 'trophytour') {
+                playerName = players.trophytour ? (players.trophytour[num] || '') : '';
             } else {
                 playerName = players.equipas && players.equipas[teamCode] ? (players.equipas[teamCode][num] || '') : '';
             }
@@ -735,6 +754,11 @@
             if (groupName === '#ALLTHEFEELS') {
                 const total = ALLTHEFEELS_CROMOS.length;
                 const owned = ALLTHEFEELS_CROMOS.filter(c => hasAny(c)).length;
+                return { owned, total };
+            }
+            if (groupName === 'Trophy Tour') {
+                const total = TROPHY_TOUR_CROMOS.length;
+                const owned = TROPHY_TOUR_CROMOS.filter(c => hasAny(c)).length;
                 return { owned, total };
             }
             let owned = 0, total = 0;
@@ -814,7 +838,7 @@
             // Filtrar e recolher equipas
             let teams = [];
             Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Trophy Tour' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 if (equipasFilter.grupo !== 'todos' && groupName !== equipasFilter.grupo) return;
                 group.teams.forEach((team, teamIdx) => {
                     const matchingNums = CROMO_NUMBERS.filter(n => {
@@ -832,7 +856,7 @@
             });
 
             // Ordenar
-            const groupOrder = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Equipas' && g !== 'Trocas');
+            const groupOrder = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Trophy Tour' && g !== 'Equipas' && g !== 'Trocas');
             teams.sort((a, b) => {
                 if (equipasFilter.sort === 'az') return a.team.name.localeCompare(b.team.name, 'pt');
                 if (equipasFilter.sort === 'za') return b.team.name.localeCompare(a.team.name, 'pt');
@@ -846,7 +870,7 @@
             });
 
             // Filtros UI
-            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Equipas' && g !== 'Trocas');
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Trophy Tour' && g !== 'Equipas' && g !== 'Trocas');
             const filters = document.createElement('div');
             filters.className = 'filter-row';
             filters.innerHTML = `
@@ -952,7 +976,7 @@
             if (!wrap) return;
             wrap.innerHTML = '';
 
-            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Equipas' && g !== 'Trocas');
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Trophy Tour' && g !== 'Equipas' && g !== 'Trocas');
 
             function sortItems(items) {
                 return [...items].sort((a, b) => {
@@ -1051,9 +1075,12 @@
             if (ALLTHEFEELS_CROMOS.includes(code)) {
                 return { teamCode: 'FEELS', teamName: '#ALLTHEFEELS', teamFlag: '❤️', num: code, playerName: players.allthefeels?.[code] || '' };
             }
+            if (TROPHY_TOUR_CROMOS.includes(code)) {
+                return { teamCode: 'TROPHY', teamName: 'Trophy Tour', teamFlag: '🏆', num: code, playerName: players.trophytour?.[code] || '' };
+            }
             let result = null;
             Object.entries(GROUPS).forEach(([gn, g]) => {
-                if (gn === 'Insights' || gn === 'Especiais' || gn === '#ALLTHEFEELS' || gn === 'Equipas' || gn === 'Trocas') return;
+                if (gn === 'Insights' || gn === 'Especiais' || gn === '#ALLTHEFEELS' || gn === 'Trophy Tour' || gn === 'Equipas' || gn === 'Trocas') return;
                 g.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
                         if (`${team.code}${n}` === code) {
@@ -1082,7 +1109,7 @@
                 }
             });
             Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Trophy Tour' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
                         const code = `${team.code}${n}`;
@@ -1146,7 +1173,7 @@
                         }
                     });
                     Object.entries(GROUPS).forEach(([groupName, group]) => {
-                        if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                        if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Trophy Tour' || groupName === 'Equipas' || groupName === 'Trocas') return;
                         group.teams.forEach(team => {
                             CROMO_NUMBERS.forEach(n => {
                                 if (`${team.code}${n}` === code) {
@@ -1191,7 +1218,7 @@
             const selectionDiv = document.createElement('div');
             selectionDiv.className = `trades-container show-${trocasMobileSide}`;
 
-            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Equipas' && g !== 'Trocas');
+            const grupos = Object.keys(GROUPS).filter(g => g !== 'Insights' && g !== 'Especiais' && g !== '#ALLTHEFEELS' && g !== 'Trophy Tour' && g !== 'Equipas' && g !== 'Trocas');
             const selectedGiveCount = data.trades.pending.given.length;
             const selectedReceiveCount = data.trades.pending.received.length;
             const hasAnyDups = getTrocasIndex().length > 0;
@@ -1281,7 +1308,7 @@
                     });
                     if (!teamCode) {
                         Object.entries(GROUPS).forEach(([gn, g]) => {
-                            if (gn === 'Insights' || gn === 'Especiais' || gn === '#ALLTHEFEELS' || gn === 'Equipas' || gn === 'Trocas') return;
+                            if (gn === 'Insights' || gn === 'Especiais' || gn === '#ALLTHEFEELS' || gn === 'Trophy Tour' || gn === 'Equipas' || gn === 'Trocas') return;
                             g.teams.forEach(team => {
                                 CROMO_NUMBERS.forEach(nr => {
                                     if (`${team.code}${nr}` === code) { teamCode = team.code; num = nr; playerName = players.equipas?.[team.code]?.[nr] || ''; }
@@ -1601,7 +1628,7 @@
             });
 
             Object.entries(GROUPS).forEach(([groupName, group]) => {
-                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Equipas' || groupName === 'Trocas') return;
+                if (groupName === 'Insights' || groupName === 'Especiais' || groupName === '#ALLTHEFEELS' || groupName === 'Trophy Tour' || groupName === 'Equipas' || groupName === 'Trocas') return;
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(num => {
                         const playerName = players.equipas && players.equipas[team.code]
