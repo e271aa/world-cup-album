@@ -788,6 +788,13 @@
                 dups += getDups(code);
             });
 
+            TROPHY_TOUR_CROMOS.forEach(code => {
+                total++;
+                if (hasCromo(code)) c1++;
+                if (hasConta2(code)) c2++;
+                dups += getDups(code);
+            });
+
             Object.values(GROUPS).forEach(group => {
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
