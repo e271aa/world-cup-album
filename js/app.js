@@ -169,6 +169,7 @@
         let data = {};
         let players = {};
         let currentTab = 'Insights';
+        let statsTeamsOnly = false;
         let saveTimeout = null;
 
         async function loadPlayers() {
@@ -774,28 +775,31 @@
         function updateStats() {
             let total = 0, c1 = 0, c2 = 0, dups = 0;
 
-            SPECIAL_CROMOS.forEach(code => {
-                total++;
-                if (hasCromo(code)) c1++;
-                if (hasConta2(code)) c2++;
-                dups += getDups(code);
-            });
+            if (!statsTeamsOnly) {
+                SPECIAL_CROMOS.forEach(code => {
+                    total++;
+                    if (hasCromo(code)) c1++;
+                    if (hasConta2(code)) c2++;
+                    dups += getDups(code);
+                });
 
-            ALLTHEFEELS_CROMOS.forEach(code => {
-                total++;
-                if (hasCromo(code)) c1++;
-                if (hasConta2(code)) c2++;
-                dups += getDups(code);
-            });
+                ALLTHEFEELS_CROMOS.forEach(code => {
+                    total++;
+                    if (hasCromo(code)) c1++;
+                    if (hasConta2(code)) c2++;
+                    dups += getDups(code);
+                });
 
-            TROPHY_TOUR_CROMOS.forEach(code => {
-                total++;
-                if (hasCromo(code)) c1++;
-                if (hasConta2(code)) c2++;
-                dups += getDups(code);
-            });
+                TROPHY_TOUR_CROMOS.forEach(code => {
+                    total++;
+                    if (hasCromo(code)) c1++;
+                    if (hasConta2(code)) c2++;
+                    dups += getDups(code);
+                });
+            }
 
-            Object.values(GROUPS).forEach(group => {
+            Object.entries(GROUPS).forEach(([name, group]) => {
+                if (name === 'Insights' || name === 'Especiais' || name === '#ALLTHEFEELS' || name === 'Trophy Tour' || name === 'Equipas' || name === 'Trocas') return;
                 group.teams.forEach(team => {
                     CROMO_NUMBERS.forEach(n => {
                         total++;
@@ -807,7 +811,14 @@
                 });
             });
 
-            const owned = new Set([...data.tenho, ...data.conta2]).size;
+            const allCodes = statsTeamsOnly
+                ? Object.entries(GROUPS)
+                    .filter(([name]) => name !== 'Insights' && name !== 'Especiais' && name !== '#ALLTHEFEELS' && name !== 'Trophy Tour' && name !== 'Equipas' && name !== 'Trocas')
+                    .flatMap(([, group]) => group.teams.flatMap(team => CROMO_NUMBERS.map(n => `${team.code}${n}`)))
+                : [...data.tenho, ...data.conta2];
+            const owned = statsTeamsOnly
+                ? new Set(allCodes.filter(c => data.tenho.includes(c) || data.conta2.includes(c))).size
+                : new Set([...data.tenho, ...data.conta2]).size;
             const percent = total > 0 ? Math.round((owned / total) * 100) : 0;
             document.getElementById('progressPercent').textContent = percent + '%';
             document.getElementById('progressFill').style.width = percent + '%';
@@ -1762,6 +1773,14 @@
 
         // Botão de logout no cabeçalho
         document.getElementById('headerLogoutBtn')?.addEventListener('click', () => auth.signOut());
+
+        document.getElementById('statsToggleBtn')?.addEventListener('click', () => {
+            statsTeamsOnly = !statsTeamsOnly;
+            const btn = document.getElementById('statsToggleBtn');
+            btn.textContent = statsTeamsOnly ? 'tudo' : 'só equipas';
+            btn.classList.toggle('active', statsTeamsOnly);
+            updateStats();
+        });
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
